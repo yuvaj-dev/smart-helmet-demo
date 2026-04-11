@@ -674,33 +674,41 @@
             <h3>⚡ Emergency Access</h3>
             <span>Fast actions for normal users</span>
           </div>
+
           <div class="status-grid">
             <div class="status-card">
               <small>Emergency Status</small>
               <div class="status-line">
-                <span class="dot green" id="accessEmergencyDot"></span
-                ><span id="accessEmergencyText">System Ready</span>
+                <span class="dot green" id="accessEmergencyDot"></span>
+                <span id="accessEmergencyText">System Ready</span>
               </div>
             </div>
             <div class="status-card">
               <small>GPS Access</small>
               <div class="status-line">
-                <span class="dot blue" id="accessGpsDot"></span
-                ><span id="accessGpsText">Always ON</span>
+                <span class="dot blue" id="accessGpsDot"></span>
+                <span id="accessGpsText">Always ON</span>
               </div>
             </div>
             <div class="status-card">
               <small>Accident Alert</small>
               <div class="status-line">
-                <span class="dot green" id="accessAccidentDot"></span
-                ><span id="accessAccidentText">No Accident</span>
+                <span class="dot green" id="accessAccidentDot"></span>
+                <span id="accessAccidentText">No Accident</span>
+              </div>
+            </div>
+            <div class="status-card">
+              <small>Alcohol Alert</small>
+              <div class="status-line">
+                <span class="dot green" id="accessAlcoholDot"></span>
+                <span id="accessAlcoholText">Safe</span>
               </div>
             </div>
             <div class="status-card">
               <small>Last Sync</small>
               <div class="status-line">
-                <span class="dot blue" id="accessLastUpdatedDot"></span
-                ><span id="accessLastUpdatedText">Just Now</span>
+                <span class="dot blue" id="accessLastUpdatedDot"></span>
+                <span id="accessLastUpdatedText">Just Now</span>
               </div>
             </div>
           </div>
@@ -711,6 +719,9 @@
             </button>
             <button class="btn btn-sos" onclick="simulateAccident()">
               💥 Simulate Accident Detection
+            </button>
+            <button class="btn btn-sos" type="button">
+              🍺 Alcohol Detection Enabled
             </button>
             <a
               class="btn btn-map"
