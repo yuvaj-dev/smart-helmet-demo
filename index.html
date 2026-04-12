@@ -1,568 +1,931 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Helmet Safety Page</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      :root {
-        --bg1: #5e5587;
-        --bg2: rgb(26, 115, 232);
-        --card: rgba(255, 255, 255, 0.09);
-        --stroke: rgba(255, 255, 255, 0.1);
-        --text: #f8fafc;
-        --pink: #ff4fa3;
-        --purple: #9b5cff;
-        --lav: #d8b4fe;
-        --green: #22c55e;
-        --red: #ef4444;
-        --blue: #9b8cff;
-        --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Smart Helmet Safety Page</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg1: #5e5587;
+      --bg2: #1a73e8;
+      --stroke: rgba(255, 255, 255, 0.1);
+      --text: #f8fafc;
+      --pink: #ff4fa3;
+      --purple: #9b5cff;
+      --lav: #d8b4fe;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #9b8cff;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    * {
+      box-sizing: border-box;
+    }
 
-      body {
-        margin: 0;
-        font-family: "Poppins", system-ui, sans-serif;
-        color: var(--text);
-        background:
-          radial-gradient(
-            circle at 12% 10%,
-            rgba(155, 92, 255, 0.26),
-            transparent 24%
-          ),
-          radial-gradient(
-            circle at 88% 20%,
-            rgba(124, 255, 231, 0.18),
-            transparent 24%
-          ),
-          radial-gradient(
-            circle at 50% 100%,
-            rgba(255, 79, 163, 0.14),
-            transparent 34%
-          ),
-          linear-gradient(135deg, #68a2bb, var(--bg2));
-        min-height: 100vh;
-        overflow-x: hidden;
-      }
+    body {
+      margin: 0;
+      font-family: "Poppins", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(155, 92, 255, 0.26), transparent 24%),
+        radial-gradient(circle at 88% 20%, rgba(124, 255, 231, 0.18), transparent 24%),
+        radial-gradient(circle at 50% 100%, rgba(255, 79, 163, 0.14), transparent 34%),
+        linear-gradient(135deg, #68a2bb, var(--bg2));
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-      .container {
-        width: min(1180px, calc(100% - 24px));
-        margin: 0 auto;
-        padding: 18px 0 36px;
-      }
+    .container {
+      width: min(1400px, calc(100% - 20px));
+      margin: 0 auto;
+      padding: 16px 0 30px;
+    }
 
-      .glass {
-        background: rgb(0 0 0 / 71%);
-        border: 1px solid var(--stroke);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-radius: 24px;
-        box-shadow: var(--shadow);
-      }
-      .hero {
-        padding: 22px;
-        margin-bottom: 16px;
-      }
+    .page-layout {
+      display: block;
+    }
 
-      .tag {
-        box-sizing: border-box;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 14px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        background: linear-gradient(
-          135deg,
-          rgb(0 0 0 / 22%),
-          rgb(33 43 49 / 24%)
-        );
-        margin-bottom: 14px;
-        border: rgba(219, 214, 214, 0.286) solid 1px;
-      }
+    .page-shift {
+      transition: filter 0.25s ease, transform 0.25s ease;
+    }
 
-      h1 {
-        margin: 0;
-        font-size: clamp(28px, 4.5vw, 46px);
-        line-height: 1.08;
-        font-weight: 800;
-      }
+    .page-shift.assistant-open {
+      filter: brightness(0.95);
+      transform: scale(0.995);
+    }
 
-      h1 span {
-        background: linear-gradient(90deg, #fff, #66b2cb, #7cd5f3, #19e6f0);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-      }
+    .glass {
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid var(--stroke);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
 
-      .hero p {
-        margin: 12px 0 0;
-        color: rgba(248, 250, 252, 0.82);
-        line-height: 1.7;
-        font-size: 15px;
-        max-width: 760px;
-      }
+    .hero {
+      padding: 22px;
+      margin-bottom: 16px;
+    }
 
-      .rider-front {
-        padding: 22px;
-        margin-bottom: 16px;
-      }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.22), rgba(33, 43, 49, 0.24));
+      margin-bottom: 14px;
+      border: 1px solid rgba(219, 214, 214, 0.28);
+    }
 
-      .rider-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        margin-bottom: 18px;
-        flex-wrap: wrap;
-      }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4.5vw, 46px);
+      line-height: 1.08;
+      font-weight: 800;
+    }
 
-      .rider-head-left {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-      }
+    h1 span {
+      background: linear-gradient(90deg, #fff, #66b2cb, #7cd5f3, #19e6f0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
 
-      .avatar {
-        width: 70px;
-        height: 70px;
-        border-radius: 20px;
-        display: grid;
-        place-items: center;
-        font-size: 26px;
-        font-weight: 800;
-        background: linear-gradient(
-          135deg,
-          var(--pink),
-          var(--purple),
-          var(--lav)
-        );
-        box-shadow: 0 12px 24px rgba(155, 92, 255, 0.22);
-      }
+    .hero p {
+      margin: 12px 0 0;
+      color: rgba(248, 250, 252, 0.82);
+      line-height: 1.7;
+      font-size: 15px;
+      max-width: 760px;
+    }
 
-      .rider-head h2 {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 800;
-      }
+    .rider-front {
+      padding: 22px;
+      margin-bottom: 16px;
+    }
 
-      .rider-head p {
-        margin: 4px 0 0;
-        color: rgba(248, 250, 252, 0.72);
-        font-size: 13px;
-      }
+    .rider-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
 
-      .safe-chip {
-        padding: 10px 16px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
-        color: white;
-        background: linear-gradient(
-          135deg,
-          rgba(34, 197, 94, 0.28),
-          rgba(124, 255, 231, 0.16)
-        );
-        border: rgba(219, 214, 214, 0.286) solid 1px;
-      }
+    .rider-head-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
 
-      .safe-chip.warning {
-        background: linear-gradient(
-          135deg,
-          rgba(251, 191, 36, 0.28),
-          rgba(249, 116, 22, 0.611)
-        );
-      }
+    .avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--pink), var(--purple), var(--lav));
+      box-shadow: 0 12px 24px rgba(155, 92, 255, 0.22);
+    }
 
-      .safe-chip.danger {
-        background: linear-gradient(
-          135deg,
-          rgba(202, 98, 114, 0.3),
-          rgba(195, 22, 22, 0.66)
-        );
-      }
+    .rider-head h2 {
+      margin: 0;
+      font-size: 26px;
+      font-weight: 800;
+    }
 
-      .rider-grid {
-        display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 16px;
-        align-items: stretch;
-      }
+    .rider-head p {
+      margin: 4px 0 0;
+      color: rgba(248, 250, 252, 0.72);
+      font-size: 13px;
+    }
 
-      .details-card,
-      .quick-actions-card {
-        padding: 18px;
-        border-radius: 22px;
-        background: rgba(255, 255, 255, 0.07);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
+    .safe-chip {
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.28), rgba(124, 255, 231, 0.16));
+      border: 1px solid rgba(219, 214, 214, 0.286);
+    }
 
-      .quick-actions-card {
-        display: flex;
-        flex-direction: column;
-        min-height: 100%;
-      }
+    .safe-chip.warning {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.28), rgba(249, 116, 22, 0.611));
+    }
 
-      .section-mini-title {
-        margin: 0 0 14px;
-        font-size: 16px;
-        font-weight: 800;
-      }
+    .safe-chip.danger {
+      background: linear-gradient(135deg, rgba(202, 98, 114, 0.3), rgba(195, 22, 22, 0.66));
+    }
 
-      .info-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 14px;
-      }
+    .rider-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      align-items: stretch;
+    }
 
-      .info {
-        padding: 14px;
-        border-radius: 18px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-      }
+    .details-card,
+    .quick-actions-card {
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
 
-      .info small {
-        display: block;
-        color: rgba(248, 250, 252, 0.68);
-        font-size: 11px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-      }
+    .quick-actions-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+    }
 
-      .info strong {
-        font-size: 15px;
-        font-weight: 700;
-      }
+    .section-mini-title {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 800;
+    }
 
-      .rider-mini-map {
-        width: 100%;
-        height: 220px;
-        border-radius: 18px;
-        overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
-      }
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
 
-      .rider-mini-map iframe {
-        width: 100%;
-        height: 100%;
-        border: 0;
-        display: block;
-      }
+    .info {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
 
-      .quick-actions {
-        display: grid;
-        gap: 12px;
-        flex: 1;
-      }
+    .info small {
+      display: block;
+      color: rgba(248, 250, 252, 0.68);
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
 
-      .mini-status {
-        padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        font-size: 13px;
-        color: rgba(248, 250, 252, 0.9);
-        font-weight: 600;
-      }
+    .info strong {
+      font-size: 15px;
+      font-weight: 700;
+    }
 
-      .quick-fill {
-        padding: 16px;
-        border-radius: 18px;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 79, 163, 0.12),
-          rgba(155, 92, 255, 0.14)
-        );
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        color: rgba(248, 250, 252, 0.88);
-        display: grid;
-        gap: 8px;
-      }
+    .rider-mini-map {
+      width: 100%;
+      height: 220px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
 
-      .quick-fill strong {
-        font-size: 15px;
-        font-weight: 700;
-      }
+    .rider-mini-map iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
 
-      .quick-fill p {
-        margin: 0;
-        font-size: 12px;
-        line-height: 1.6;
-        color: rgba(248, 250, 252, 0.76);
-      }
+    .quick-actions {
+      display: grid;
+      gap: 12px;
+      flex: 1;
+    }
 
-      .quick-fill .pill-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 4px;
-      }
+    .mini-status {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      color: rgba(248, 250, 252, 0.9);
+      font-weight: 600;
+    }
 
-      .quick-fill .pill {
-        padding: 7px 10px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
-        background: rgba(255, 255, 255, 0.09);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
+    .quick-fill {
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255, 79, 163, 0.12), rgba(155, 92, 255, 0.14));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(248, 250, 252, 0.88);
+      display: grid;
+      gap: 8px;
+    }
 
-      .btn {
-        width: 100%;
-        border: none;
-        border-radius: 16px;
-        padding: 14px 16px;
-        color: white;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        transition: transform 0.2s ease;
-      }
+    .quick-fill strong {
+      font-size: 15px;
+      font-weight: 700;
+    }
 
-      .btn:hover {
-        transform: translateY(-2px);
-      }
+    .quick-fill p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(248, 250, 252, 0.76);
+    }
 
-      .btn-sos {
-        background: linear-gradient(135deg, #fb7185, #ef4444);
-        box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
-      }
+    .quick-fill .pill-row,
+    .assistant-footer-card .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
 
-      .btn-sos.large {
-        padding: 18px 18px;
-        font-size: 16px;
-        border-radius: 18px;
-        box-shadow: 0 14px 28px rgba(239, 68, 68, 0.32);
-      }
+    .quick-fill .pill,
+    .assistant-footer-card .pill {
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
 
-      .btn-map {
-        background: linear-gradient(135deg, #26b7e8, #1ac18f);
-        box-shadow: 0 10px 24px rgba(139, 92, 246, 0.22);
-      }
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 16px;
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.2s ease;
+    }
 
-      .tabs-wrap {
-        margin-top: 4px;
-      }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
 
-      .tabs {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 16px;
-      }
+    .btn-sos {
+      background: linear-gradient(135deg, #fb7185, #ef4444);
+      box-shadow: 0 10px 24px rgba(239, 68, 68, 0.25);
+    }
 
-      .tab-btn {
-        border: none;
-        cursor: pointer;
-        padding: 12px 16px;
-        border-radius: 16px;
-        font-size: 13px;
-        font-weight: 700;
-        color: white;
-        background: rgb(45 44 44 / 61%);
-        border: 1px solid rgb(107 69 69 / 84%);
-        transition: all 0.2s ease;
-      }
+    .btn-sos.large {
+      padding: 18px 18px;
+      font-size: 16px;
+      border-radius: 18px;
+      box-shadow: 0 14px 28px rgba(239, 68, 68, 0.32);
+    }
 
-      .tab-btn.active {
-        background: linear-gradient(135deg, rgb(0 0 0 / 78%), rgb(0 0 0 / 62%));
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: 0 8px 20px rgba(155, 92, 255, 0.16);
-      }
+    .btn-map {
+      background: linear-gradient(135deg, #26b7e8, #1ac18f);
+      box-shadow: 0 10px 24px rgba(26, 193, 143, 0.22);
+    }
 
-      .tab-panel {
-        display: none;
-        padding: 22px;
-      }
+    .tabs-wrap {
+      margin-top: 4px;
+    }
 
-      .tab-panel.active {
-        display: block;
-      }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
 
-      .panel-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 14px;
-        flex-wrap: wrap;
-      }
+    .tab-btn {
+      border: none;
+      cursor: pointer;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      background: rgba(45, 44, 44, 0.61);
+      border: 1px solid rgba(107, 69, 69, 0.84);
+      transition: all 0.2s ease;
+    }
 
-      .panel-title h3 {
-        margin: 0;
-        font-size: 22px;
-        font-weight: 800;
-      }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.62));
+      border-color: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 8px 20px rgba(155, 92, 255, 0.16);
+    }
 
-      .panel-title span {
-        color: rgba(248, 250, 252, 0.72);
-        font-size: 12px;
-        font-weight: 600;
+    .tab-panel {
+      display: none;
+      padding: 22px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .panel-title h3 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .panel-title span {
+      color: rgba(248, 250, 252, 0.72);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .status-card {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .status-card small {
+      display: block;
+      color: rgba(248, 250, 252, 0.72);
+      font-size: 12px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      box-shadow: 0 0 16px currentColor;
+    }
+
+    .green {
+      color: var(--green);
+    }
+
+    .blue {
+      color: var(--blue);
+    }
+
+    .red {
+      color: var(--red);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .feature {
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(255, 79, 163, 0.18), rgba(216, 180, 254, 0.16));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .feature h4 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .feature p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(248, 250, 252, 0.72);
+    }
+
+    .chatbot-panel {
+      padding: 18px;
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.05));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .chatbot-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .bot-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      box-shadow: 0 10px 24px rgba(139, 92, 246, 0.22);
+    }
+
+    .bot-meta h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .bot-meta p {
+      margin: 2px 0 0;
+      font-size: 11px;
+      color: rgba(248, 250, 252, 0.7);
+    }
+
+    .chat-window {
+      display: grid;
+      gap: 10px;
+      padding: 10px 0 2px;
+    }
+
+    .chat-bubble {
+      max-width: 88%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      font-size: 13px;
+      line-height: 1.55;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .chat-bubble.bot {
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(248, 250, 252, 0.92);
+      border-top-left-radius: 8px;
+      justify-self: start;
+    }
+
+    .chat-bubble.user {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(6, 182, 212, 0.18));
+      color: #fff;
+      border-top-right-radius: 8px;
+      justify-self: end;
+    }
+
+    .quick-actions-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(248, 250, 252, 0.65);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .quick-chip-wrap {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quick-chip {
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.2s ease;
+    }
+
+    .quick-chip:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .quick-chip span {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(248, 250, 252, 0.72);
+      margin-top: 3px;
+    }
+
+    .premium-assistant {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(139, 92, 246, 0.18), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.15), transparent 30%),
+        linear-gradient(180deg, rgba(10, 15, 28, 0.94), rgba(12, 18, 34, 0.90));
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .assistant-top-glow {
+      position: absolute;
+      top: -80px;
+      right: -50px;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 70%);
+      pointer-events: none;
+    }
+
+    .premium-head {
+      position: relative;
+      z-index: 1;
+      align-items: center;
+    }
+
+    .premium-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      font-size: 22px;
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4, #22d3ee);
+      box-shadow: 0 14px 30px rgba(139, 92, 246, 0.28);
+    }
+
+    .assistant-live-badge {
+      margin-left: auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      color: #fff;
+      background: linear-gradient(135deg, #22c55e, #14b8a6);
+      box-shadow: 0 8px 18px rgba(34, 197, 94, 0.25);
+    }
+
+    .assistant-status-card {
+      position: relative;
+      z-index: 1;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.10);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .assistant-status-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .assistant-status-card small {
+      color: rgba(248, 250, 252, 0.7);
+      font-size: 11px;
+    }
+
+    .assistant-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 14px rgba(34, 197, 94, 0.7);
+    }
+
+    .premium-chat-window {
+      position: relative;
+      z-index: 1;
+    }
+
+    .premium-bubble {
+      background: rgba(255, 255, 255, 0.09);
+    }
+
+    .premium-user-bubble {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(6, 182, 212, 0.22));
+    }
+
+    .premium-chip-wrap {
+      position: relative;
+      z-index: 1;
+      gap: 12px;
+    }
+
+    .premium-chip {
+      border-radius: 18px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .premium-chip .chip-main {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 3px;
+    }
+
+    .premium-chip span {
+      font-size: 11px;
+      color: rgba(248, 250, 252, 0.74);
+    }
+
+    .danger-chip:hover {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(251, 113, 133, 0.14));
+    }
+
+    .medical-chip:hover {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.18), rgba(34, 197, 94, 0.14));
+    }
+
+    .location-chip:hover {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(139, 92, 246, 0.14));
+    }
+
+    .assistant-footer-card {
+      position: relative;
+      z-index: 1;
+      margin-top: auto;
+      padding: 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255, 79, 163, 0.08), rgba(139, 92, 246, 0.12));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .assistant-footer-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .assistant-footer-card p {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.6;
+      color: rgba(248, 250, 252, 0.76);
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding: 14px;
+      text-align: center;
+      color: rgba(248, 250, 252, 0.72);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .floating-bot-btn {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      width: 68px;
+      height: 68px;
+      border-radius: 22px;
+      border: none;
+      cursor: pointer;
+      z-index: 1000;
+      color: #fff;
+      font-size: 28px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4, #22d3ee);
+      box-shadow: 0 16px 36px rgba(139, 92, 246, 0.35);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .floating-bot-btn:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    .assistant-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .assistant-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .smart-assistant-drawer {
+      position: fixed;
+      top: 14px;
+      right: 14px;
+      width: min(390px, calc(100vw - 28px));
+      height: calc(100vh - 28px);
+      z-index: 999;
+      transform: translateX(110%);
+      transition: transform 0.3s ease;
+      display: flex;
+    }
+
+    .smart-assistant-drawer.open {
+      transform: translateX(0);
+    }
+
+    .smart-assistant-drawer .chatbot-panel {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      overflow: auto;
+    }
+
+    .smart-assistant-drawer .chatbot-panel::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .smart-assistant-drawer .chatbot-panel::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+
+    .assistant-close-btn {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      z-index: 2;
+      color: #fff;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 980px) {
+      .rider-grid,
+      .features-grid {
+        grid-template-columns: 1fr;
       }
 
       .status-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
+        grid-template-columns: 1fr;
       }
+    }
 
-      .status-card {
-        padding: 16px;
+    @media (max-width: 768px) {
+      .floating-bot-btn {
+        width: 62px;
+        height: 62px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        font-size: 24px;
+        right: 14px;
+        bottom: 14px;
       }
 
-      .status-card small {
-        display: block;
-        color: rgba(248, 250, 252, 0.72);
-        font-size: 12px;
-        margin-bottom: 8px;
-        font-weight: 600;
+      .smart-assistant-drawer {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: min(82vh, 720px);
+        transform: translateY(110%);
       }
 
-      .status-line {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 700;
-        font-size: 16px;
+      .smart-assistant-drawer.open {
+        transform: translateY(0);
       }
 
-      .dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        box-shadow: 0 0 16px currentColor;
+      .smart-assistant-drawer .chatbot-panel {
+        border-radius: 24px 24px 0 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        width: min(100%, calc(100% - 12px));
+        padding-top: 12px;
       }
 
-      .green {
-        color: var(--green);
-      }
-      .blue {
-        color: var(--blue);
-      }
-      .red {
-        color: var(--red);
+      .hero,
+      .rider-front,
+      .tab-panel,
+      .chatbot-panel {
+        padding: 16px;
       }
 
+      .info-grid,
       .features-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
+        grid-template-columns: 1fr;
       }
 
-      .feature {
-        padding: 16px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
+      h1 {
+        font-size: 30px;
       }
 
-      .icon {
-        width: 42px;
-        height: 42px;
-        border-radius: 14px;
-        display: grid;
-        place-items: center;
-        font-size: 20px;
-        flex-shrink: 0;
-        background: linear-gradient(
-          135deg,
-          rgba(255, 79, 163, 0.18),
-          rgba(216, 180, 254, 0.16)
-        );
-        border: 1px solid rgba(255, 255, 255, 0.08);
+      .chat-bubble {
+        max-width: 100%;
       }
-
-      .feature h4 {
-        margin: 0 0 4px;
-        font-size: 14px;
-        font-weight: 700;
-      }
-
-      .feature p {
-        margin: 0;
-        font-size: 12px;
-        line-height: 1.55;
-        color: rgba(248, 250, 252, 0.72);
-      }
-
-      .footer {
-        margin-top: 16px;
-        padding: 14px;
-        text-align: center;
-        color: rgba(248, 250, 252, 0.72);
-        font-size: 12px;
-        line-height: 1.7;
-      }
-
-      @media (max-width: 980px) {
-        .rider-grid,
-        .status-grid,
-        .features-grid {
-          grid-template-columns: 1fr 1fr;
-        }
-
-        .rider-grid {
-          grid-template-columns: 1fr;
-        }
-      }
-
-      @media (max-width: 640px) {
-        .container {
-          width: min(100%, calc(100% - 14px));
-          padding-top: 14px;
-        }
-        .hero,
-        .rider-front,
-        .tab-panel {
-          padding: 16px;
-        }
-        .info-grid,
-        .status-grid,
-        .features-grid {
-          grid-template-columns: 1fr;
-        }
-        h1 {
-          font-size: 30px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
+    }
+  </style>
+</head>
+<body>
+  <div class="container page-shift" id="pageShift">
+    <div class="page-layout">
       <section class="glass hero">
         <div class="tag">🪖 Smart Helmet Safety Page</div>
         <h1>Quick help with a <span>smart rider profile</span></h1>
         <p>
-          Rider details are shown first for quick emergency access. Other
-          sections like emergency actions, live status, and helmet features are
-          placed in simple tabs below for a cleaner and more premium experience.
+          Rider details are shown first for quick emergency access. Other sections like
+          emergency actions, live status, and helmet features 
+           placed in simple tabs
+          below for a cleaner and more premium experience.
         </p>
       </section>
 
@@ -609,8 +972,7 @@
                 loading="lazy"
                 allowfullscreen
                 referrerpolicy="no-referrer-when-downgrade"
-              >
-              </iframe>
+              ></iframe>
             </div>
           </div>
 
@@ -625,11 +987,7 @@
               </div>
 
               <div class="quick-fill">
-                <strong>Emergency Support Ready</strong>
-                <p>
-                  GPS hamesha active hai. Agar rider ko help chahiye ho to aap
-                  turant location share ya SOS trigger kar sakte ho.
-                </p>
+                
                 <div class="pill-row">
                   <span class="pill">Live GPS</span>
                   <span class="pill">SOS Ready</span>
@@ -640,17 +998,20 @@
               <button class="btn btn-map" onclick="sendGPSToLovedOnes()">
                 💜 Send GPS to Parents / Loved Ones
               </button>
+
               <button class="btn btn-sos large" onclick="triggerSOS()">
                 🚨 Activate SOS
               </button>
+
               <a
                 class="btn btn-map"
                 id="topMapLink"
                 href="https://www.google.com/maps?q=28.6139,77.2090"
                 target="_blank"
                 rel="noopener noreferrer"
-                >🗺️ Open in Google Maps</a
               >
+                🗺️ Open in Google Maps
+              </a>
             </div>
           </div>
         </div>
@@ -683,6 +1044,7 @@
                 <span id="accessEmergencyText">System Ready</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>GPS Access</small>
               <div class="status-line">
@@ -690,6 +1052,7 @@
                 <span id="accessGpsText">Always ON</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Accident Alert</small>
               <div class="status-line">
@@ -697,6 +1060,7 @@
                 <span id="accessAccidentText">No Accident</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Alcohol Alert</small>
               <div class="status-line">
@@ -704,6 +1068,7 @@
                 <span id="accessAlcoholText">Safe</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Last Sync</small>
               <div class="status-line">
@@ -713,27 +1078,8 @@
             </div>
           </div>
 
-          <div style="margin-top: 16px; display: grid; gap: 12px">
-            <button class="btn btn-sos large" onclick="triggerSOS()">
-              🚨 Activate SOS
-            </button>
-            <button class="btn btn-sos" onclick="simulateAccident()">
-              💥 Simulate Accident Detection
-            </button>
-            <button class="btn btn-sos" type="button">
-              🍺 Alcohol Detection Enabled
-            </button>
-            <a
-              class="btn btn-map"
-              id="accessMapLink"
-              href="https://www.google.com/maps?q=28.6139,77.2090"
-              target="_blank"
-              rel="noopener noreferrer"
-              >🗺️ Open Live Location</a
-            >
-            <button class="btn btn-map" onclick="sendGPSToLovedOnes()">
-              💜 Send GPS to Parents / Loved Ones
-            </button>
+          <div style="display: grid; gap: 12px; margin-top: 16px">
+        
           </div>
         </section>
 
@@ -742,33 +1088,37 @@
             <h3>📊 Live Helmet Status</h3>
             <span>Easy to understand current condition</span>
           </div>
-          <div class="status-grid">
+
+          <div class="status-grid" style="grid-template-columns: repeat(4, 1fr)">
             <div class="status-card">
               <small>Helmet Status</small>
               <div class="status-line">
-                <span class="dot green" id="statusHelmetDot"></span
-                ><span id="statusHelmetText">Helmet Worn</span>
+                <span class="dot green" id="statusHelmetDot"></span>
+                <span id="statusHelmetText">Helmet Worn</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Alcohol Check</small>
               <div class="status-line">
-                <span class="dot green" id="statusAlcoholDot"></span
-                ><span id="statusAlcoholText">Safe</span>
+                <span class="dot green" id="statusAlcoholDot"></span>
+                <span id="statusAlcoholText">Safe</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Location Status</small>
               <div class="status-line">
-                <span class="dot blue" id="statusGpsDot"></span
-                ><span id="statusGpsText">GPS Always Online</span>
+                <span class="dot blue" id="statusGpsDot"></span>
+                <span id="statusGpsText">GPS Always Online</span>
               </div>
             </div>
+
             <div class="status-card">
               <small>Emergency System</small>
               <div class="status-line">
-                <span class="dot green" id="statusEmergencyDot"></span
-                ><span id="statusEmergencyText">Ready</span>
+                <span class="dot green" id="statusEmergencyDot"></span>
+                <span id="statusEmergencyText">Ready</span>
               </div>
             </div>
           </div>
@@ -792,63 +1142,56 @@
             <h3>✨ Helmet Features</h3>
             <span>Your final locked features</span>
           </div>
+
           <div class="features-grid">
             <div class="feature">
               <div class="icon">🔳</div>
               <div>
                 <h4>QR Scan for Rider Details</h4>
-                <p>
-                  Anyone can scan the QR code to see rider details and emergency
-                  contact quickly.
-                </p>
+                <p>Anyone can scan the QR code to see rider details and emergency contact quickly.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">🪖</div>
               <div>
                 <h4>Helmet Wear Detection</h4>
-                <p>
-                  The system checks if the rider is wearing the helmet properly.
-                </p>
+                <p>The system checks if the rider is wearing the helmet properly.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">🍺</div>
               <div>
                 <h4>Alcohol Detection</h4>
-                <p>
-                  The helmet checks for unsafe alcohol presence before riding.
-                </p>
+                <p>The helmet checks for unsafe alcohol presence before riding.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">💥</div>
               <div>
                 <h4>Accident Detection</h4>
-                <p>
-                  The helmet can detect sudden impact or accident situations.
-                </p>
+                <p>The helmet can detect sudden impact or accident situations.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">🆘</div>
               <div>
                 <h4>SOS Button</h4>
-                <p>
-                  The website includes an SOS button for quick emergency help.
-                </p>
+                <p>The website includes an SOS button for quick emergency help.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">⚠️</div>
               <div>
                 <h4>Helmet Removed Alert</h4>
-                <p>
-                  The system shows a warning if the helmet is removed during the
-                  ride.
-                </p>
+                <p>The system shows a warning if the helmet is removed during the ride.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">📶</div>
               <div>
@@ -856,13 +1199,12 @@
                 <p>Helmet data updates in real-time using ESP32 WiFi.</p>
               </div>
             </div>
+
             <div class="feature">
               <div class="icon">🗺️</div>
               <div>
                 <h4>Google Maps Location</h4>
-                <p>
-                  The live rider location can be opened directly in Google Maps.
-                </p>
+                <p>The live rider location can be opened directly in Google Maps.</p>
               </div>
             </div>
           </div>
@@ -870,501 +1212,601 @@
       </div>
 
       <div class="glass footer">
-        Smart Helmet Safety Page • This smart helmet checks rider safety using
-        sensors and quickly shows rider details, location, and emergency support
-        after QR scan.
+        Smart Helmet Safety Page • This smart helmet checks rider safety using sensors and
+        quickly shows rider details, location, and emergency support after QR scan.
       </div>
     </div>
+  </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-    <script>
-      // Replace these placeholder values with your Firebase project config.
-      // If they stay as-is, the page falls back to a local hackathon demo mode.
-      const firebaseConfig = window.SMART_HELMET_FIREBASE_CONFIG || {
-        apiKey: "AIzaSyDa5xf9lemlnvj4KX6r5kdVjEHBM46RZ1VQ",
-        authDomain: "smart-helmet-demo-8f1d9.firebaseapp.com",
-        databaseURL:
-          "https://smart-helmet-demo-8f1d9-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "smart-helmet-demo-8f1d9",
-        storageBucket: "smart-helmet-demo-8f1d9.firebasestorage.app",
-        messagingSenderId: "109016521127",
-        appId: "1:109016521127:web:057c8b912247c38d9c203a",
-        measurementId: "G-BTLBNYPACR",
+  <div class="assistant-overlay" id="assistantOverlay" onclick="toggleAssistant(false)"></div>
+
+  <div class="smart-assistant-drawer" id="smartAssistantDrawer">
+    <div class="glass chatbot-panel premium-assistant">
+      <button class="assistant-close-btn" onclick="toggleAssistant(false)">✕</button>
+
+      <div class="assistant-top-glow"></div>
+
+      <div class="chatbot-header premium-head">
+        <div class="bot-avatar premium-avatar">🤖</div>
+        <div class="bot-meta">
+          <h4>Smart Help Assistant</h4>
+          <p>Instant emergency actions • AI support panel</p>
+        </div>
+    
+      </div>
+
+      <div class="assistant-status-card">
+        <div class="assistant-status-line">
+          <span class="assistant-dot"></span>
+          <span>Emergency Assistant Online</span>
+        </div>
+        <small>Quick help available anytime during ride</small>
+      </div>
+
+      <div class="chat-window premium-chat-window">
+        <div class="chat-bubble bot premium-bubble">
+          Hi, I’m your Smart Help Assistant. I can instantly help in danger,
+          medical emergencies, or live GPS sharing.
+        </div>
+
+        <div class="chat-bubble user premium-user-bubble" id="chatbotResponse">
+          Waiting for your action...
+        </div>
+      </div>
+
+      <div class="quick-actions-title">Quick Emergency Actions</div>
+
+      <div class="quick-chip-wrap premium-chip-wrap">
+        <button class="quick-chip premium-chip danger-chip" onclick="chatbotDanger()">
+          <div class="chip-main">🚨 I am in Danger</div>
+          <span>Trigger immediate SOS emergency response</span>
+        </button>
+
+        <button class="quick-chip premium-chip medical-chip" onclick="chatbotMedical()">
+          <div class="chip-main">🏥 I need Medical Assistance</div>
+          <span>Open nearby hospitals instantly in Google Maps</span>
+        </button>
+
+        <button class="quick-chip premium-chip location-chip" onclick="chatbotShareLocation()">
+          <div class="chip-main">📍 Share Live Location</div>
+          <span>Quickly send GPS to parents or loved ones</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="floating-bot-btn" onclick="toggleAssistant(true)" aria-label="Open Smart Help Assistant">
+    🤖
+  </button>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = window.SMART_HELMET_FIREBASE_CONFIG || {
+      apiKey: "AIzaSyDa5xf9lemlnvj4KX6r5kdVjEHBM46RZ1VQ",
+      authDomain: "smart-helmet-demo-8f1d9.firebaseapp.com",
+      databaseURL:
+        "https://smart-helmet-demo-8f1d9-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "smart-helmet-demo-8f1d9",
+      storageBucket: "smart-helmet-demo-8f1d9.firebasestorage.app",
+      messagingSenderId: "109016521127",
+      appId: "1:109016521127:web:057c8b912247c38d9c203a",
+      measurementId: "G-BTLBNYPACR"
+    };
+
+    const DEFAULT_HELMET_ID = "HLM001";
+    const DEFAULT_LOCATION = { lat: 28.6139, lng: 77.209 };
+    const ACCIDENT_POPUP_MESSAGE =
+      "Accident detected! Sending live location to emergency contact, ambulance, and police.";
+    const GPS_SUCCESS_MESSAGE =
+      "Live GPS sent successfully to your parents / loved ones.";
+    const SOS_SUCCESS_MESSAGE =
+      "SOS activated! Emergency support has been marked for this helmet.";
+
+    const ui = {
+      riderAvatar: document.getElementById("riderAvatar"),
+      riderName: document.getElementById("riderName"),
+      helmetMeta: document.getElementById("helmetMeta"),
+      overallStatusChip: document.getElementById("overallStatusChip"),
+      bloodGroupValue: document.getElementById("bloodGroupValue"),
+      emergencyContactValue: document.getElementById("emergencyContactValue"),
+      cityValue: document.getElementById("cityValue"),
+      medicalNoteValue: document.getElementById("medicalNoteValue"),
+      riderMapFrame: document.getElementById("riderMapFrame"),
+      lastUpdatedQuick: document.getElementById("lastUpdatedQuick"),
+      gpsQuickStatus: document.getElementById("gpsQuickStatus"),
+      topMapLink: document.getElementById("topMapLink"),
+      accessMapLink: document.getElementById("accessMapLink"),
+      accessEmergencyDot: document.getElementById("accessEmergencyDot"),
+      accessEmergencyText: document.getElementById("accessEmergencyText"),
+      accessGpsDot: document.getElementById("accessGpsDot"),
+      accessGpsText: document.getElementById("accessGpsText"),
+      accessAccidentDot: document.getElementById("accessAccidentDot"),
+      accessAccidentText: document.getElementById("accessAccidentText"),
+      accessAlcoholDot: document.getElementById("accessAlcoholDot"),
+      accessAlcoholText: document.getElementById("accessAlcoholText"),
+      accessLastUpdatedDot: document.getElementById("accessLastUpdatedDot"),
+      accessLastUpdatedText: document.getElementById("accessLastUpdatedText"),
+      statusHelmetDot: document.getElementById("statusHelmetDot"),
+      statusHelmetText: document.getElementById("statusHelmetText"),
+      statusAlcoholDot: document.getElementById("statusAlcoholDot"),
+      statusAlcoholText: document.getElementById("statusAlcoholText"),
+      statusGpsDot: document.getElementById("statusGpsDot"),
+      statusGpsText: document.getElementById("statusGpsText"),
+      statusEmergencyDot: document.getElementById("statusEmergencyDot"),
+      statusEmergencyText: document.getElementById("statusEmergencyText"),
+      statusSummaryText: document.getElementById("statusSummaryText"),
+      chatbotResponse: document.getElementById("chatbotResponse")
+    };
+
+    const helmetId = getHelmetIdFromUrl();
+    const helmetPath = "helmets/" + helmetId;
+    let database = null;
+    let helmetRef = null;
+    let usingFirebase = false;
+    let fallbackHelmetData = createDemoHelmetData(helmetId);
+    let isSeedingMissingHelmet = false;
+    let previousAccidentDetected = null;
+    let currentLocationCache = { ...DEFAULT_LOCATION };
+
+    initializeHelmetPage();
+
+    async function initializeHelmetPage() {
+      try {
+        if (!hasRealFirebaseConfig(firebaseConfig)) {
+          renderHelmetData(fallbackHelmetData);
+          return;
+        }
+
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+
+        database = firebase.database();
+        helmetRef = database.ref(helmetPath);
+        usingFirebase = true;
+
+        attachRealtimeListener();
+      } catch (error) {
+        console.error("Firebase demo fallback enabled:", error);
+        usingFirebase = false;
+        renderHelmetData(fallbackHelmetData);
+      }
+    }
+
+    function getHelmetIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const rawHelmetId = (params.get("helmetId") || DEFAULT_HELMET_ID)
+        .trim()
+        .toUpperCase();
+      return rawHelmetId.replace(/[^A-Z0-9]/g, "") || DEFAULT_HELMET_ID;
+    }
+
+    function hasRealFirebaseConfig(config) {
+      const requiredKeys = ["apiKey", "authDomain", "databaseURL", "projectId", "appId"];
+      return requiredKeys.every((key) => {
+        const value = config[key];
+        return typeof value === "string" && value && !value.startsWith("YOUR_");
+      });
+    }
+
+    function createDemoHelmetData(currentHelmetId) {
+      return {
+        rider: {
+          name: "Yuvraj",
+          bloodGroup: "B+",
+          emergencyContact: "+919876543210",
+          city: "Delhi, India",
+          medicalNote: "No Known Allergies"
+        },
+        status: {
+          helmetWorn: true,
+          alcoholSafe: true,
+          gpsOnline: true,
+          sosActive: false,
+          accidentDetected: false,
+          lastUpdated: "Just Now"
+        },
+        location: {
+          lat: DEFAULT_LOCATION.lat,
+          lng: DEFAULT_LOCATION.lng
+        }
       };
+    }
 
-      const DEFAULT_HELMET_ID = "HLM001";
-      const DEFAULT_LOCATION = { lat: 28.6139, lng: 77.209 };
-      const ACCIDENT_POPUP_MESSAGE =
-        "Accident detected! Sending live location to emergency contact, ambulance, and police.";
-      const GPS_SUCCESS_MESSAGE =
-        "Live GPS sent successfully to your parents / loved ones.";
-      const SOS_SUCCESS_MESSAGE =
-        "SOS activated! Emergency support has been marked for this helmet.";
+    function attachRealtimeListener() {
+      if (!helmetRef) return;
 
-      const ui = {
-        riderAvatar: document.getElementById("riderAvatar"),
-        riderName: document.getElementById("riderName"),
-        helmetMeta: document.getElementById("helmetMeta"),
-        overallStatusChip: document.getElementById("overallStatusChip"),
-        bloodGroupValue: document.getElementById("bloodGroupValue"),
-        emergencyContactValue: document.getElementById("emergencyContactValue"),
-        cityValue: document.getElementById("cityValue"),
-        medicalNoteValue: document.getElementById("medicalNoteValue"),
-        riderMapFrame: document.getElementById("riderMapFrame"),
-        lastUpdatedQuick: document.getElementById("lastUpdatedQuick"),
-        gpsQuickStatus: document.getElementById("gpsQuickStatus"),
-        topMapLink: document.getElementById("topMapLink"),
-        accessMapLink: document.getElementById("accessMapLink"),
-        accessEmergencyDot: document.getElementById("accessEmergencyDot"),
-        accessEmergencyText: document.getElementById("accessEmergencyText"),
-        accessGpsDot: document.getElementById("accessGpsDot"),
-        accessGpsText: document.getElementById("accessGpsText"),
-        accessAccidentDot: document.getElementById("accessAccidentDot"),
-        accessAccidentText: document.getElementById("accessAccidentText"),
-        accessLastUpdatedDot: document.getElementById("accessLastUpdatedDot"),
-        accessLastUpdatedText: document.getElementById("accessLastUpdatedText"),
-        statusHelmetDot: document.getElementById("statusHelmetDot"),
-        statusHelmetText: document.getElementById("statusHelmetText"),
-        statusAlcoholDot: document.getElementById("statusAlcoholDot"),
-        statusAlcoholText: document.getElementById("statusAlcoholText"),
-        statusGpsDot: document.getElementById("statusGpsDot"),
-        statusGpsText: document.getElementById("statusGpsText"),
-        statusEmergencyDot: document.getElementById("statusEmergencyDot"),
-        statusEmergencyText: document.getElementById("statusEmergencyText"),
-        statusSummaryText: document.getElementById("statusSummaryText"),
-      };
+      helmetRef.off("value");
 
-      const helmetId = getHelmetIdFromUrl();
-      const helmetPath = "helmets/" + helmetId;
-      let database = null;
-      let helmetRef = null;
-      let usingFirebase = false;
-      let fallbackHelmetData = createDemoHelmetData(helmetId);
-      let isSeedingMissingHelmet = false;
-      let previousAccidentDetected = null;
-
-      initializeHelmetPage();
-
-      async function initializeHelmetPage() {
-        try {
-          if (!hasRealFirebaseConfig(firebaseConfig)) {
+      helmetRef.on(
+        "value",
+        (snapshot) => {
+          if (!snapshot.exists()) {
             renderHelmetData(fallbackHelmetData);
+            seedMissingHelmetData();
             return;
           }
 
-          if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-          }
-
-          database = firebase.database();
-          helmetRef = database.ref(helmetPath);
-          usingFirebase = true;
-          console.log("Firebase initialized:", helmetPath);
-
-          attachRealtimeListener();
-        } catch (error) {
-          console.error("Firebase demo fallback enabled:", error);
+          const helmetData = mergeHelmetData(snapshot.val());
+          renderHelmetData(helmetData);
+        },
+        (error) => {
+          console.error("Realtime listener failed, switching to local demo data:", error);
           usingFirebase = false;
           renderHelmetData(fallbackHelmetData);
         }
-      }
+      );
+    }
 
-      function getHelmetIdFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const rawHelmetId = (params.get("helmetId") || DEFAULT_HELMET_ID)
-          .trim()
-          .toUpperCase();
-        return rawHelmetId.replace(/[^A-Z0-9]/g, "") || DEFAULT_HELMET_ID;
-      }
+    function seedMissingHelmetData() {
+      if (!usingFirebase || !helmetRef || isSeedingMissingHelmet) return;
 
-      function hasRealFirebaseConfig(config) {
-        const requiredKeys = [
-          "apiKey",
-          "authDomain",
-          "databaseURL",
-          "projectId",
-          "appId",
-        ];
+      isSeedingMissingHelmet = true;
 
-        return requiredKeys.every((key) => {
-          const value = config[key];
-          return (
-            typeof value === "string" && value && !value.startsWith("YOUR_")
-          );
+      helmetRef
+        .set(fallbackHelmetData)
+        .catch((error) => {
+          console.error("Unable to seed missing helmet data:", error);
+        })
+        .finally(() => {
+          isSeedingMissingHelmet = false;
         });
-      }
+    }
 
-      function createDemoHelmetData(currentHelmetId) {
-        return {
-          rider: {
-            name: "Yuvraj",
-            bloodGroup: "B+",
-            emergencyContact: "+919876543210",
-            city: "Delhi, India",
-            medicalNote: "No Known Allergies",
-          },
-          status: {
-            helmetWorn: true,
-            alcoholSafe: true,
-            gpsOnline: true,
-            sosActive: false,
-            accidentDetected: false,
-            lastUpdated: "Just Now",
-          },
-          location: {
-            lat: DEFAULT_LOCATION.lat,
-            lng: DEFAULT_LOCATION.lng,
-          },
-        };
-      }
-
-      function attachRealtimeListener() {
-        if (!helmetRef) {
-          return;
+    function mergeHelmetData(incomingData) {
+      return {
+        rider: {
+          ...createDemoHelmetData(helmetId).rider,
+          ...(incomingData && incomingData.rider ? incomingData.rider : {})
+        },
+        status: {
+          ...createDemoHelmetData(helmetId).status,
+          ...(incomingData && incomingData.status ? incomingData.status : {})
+        },
+        location: {
+          ...DEFAULT_LOCATION,
+          ...(incomingData && incomingData.location ? incomingData.location : {})
         }
+      };
+    }
 
-        helmetRef.off("value");
-        console.log("Realtime listener attached:", helmetPath);
+    function renderHelmetData(helmetData) {
+      const rider = helmetData.rider || {};
+      const status = helmetData.status || {};
+      const location = normalizeLocation(helmetData.location || {});
+      currentLocationCache = location;
+      fallbackHelmetData.location = location;
 
-        helmetRef.on(
-          "value",
-          (snapshot) => {
-            console.log("Snapshot updated:", snapshot.val());
+      const overallStatus = getOverallStatus(status);
 
-            if (!snapshot.exists()) {
-              renderHelmetData(fallbackHelmetData);
-              seedMissingHelmetData();
-              return;
-            }
+      ui.riderAvatar.textContent = (rider.name || helmetId).charAt(0).toUpperCase();
+      ui.riderName.textContent = rider.name || "Unknown Rider";
+      ui.helmetMeta.textContent = "Helmet ID: " + helmetId + " • Opened via QR Scan";
+      ui.overallStatusChip.textContent = overallStatus.text;
+      ui.overallStatusChip.className = "safe-chip" + (overallStatus.tone ? " " + overallStatus.tone : "");
 
-            const helmetData = mergeHelmetData(snapshot.val());
-            renderHelmetData(helmetData);
-          },
-          (error) => {
-            console.error(
-              "Realtime listener failed, switching to local demo data:",
-              error,
-            );
-            usingFirebase = false;
-            renderHelmetData(fallbackHelmetData);
-          },
-        );
-      }
+      ui.bloodGroupValue.textContent = rider.bloodGroup || "Not available";
+      ui.emergencyContactValue.textContent = rider.emergencyContact || "Not available";
+      ui.cityValue.textContent = rider.city || "Not available";
+      ui.medicalNoteValue.textContent = rider.medicalNote || "Not available";
 
-      function seedMissingHelmetData() {
-        if (!usingFirebase || !helmetRef || isSeedingMissingHelmet) {
-          return;
-        }
+      ui.lastUpdatedQuick.textContent = "🕒 Last Updated: " + (status.lastUpdated || "Just Now");
+      ui.gpsQuickStatus.textContent = "📍 GPS Status: " + (status.gpsOnline ? "Always ON" : "Offline");
 
-        isSeedingMissingHelmet = true;
+      updateMapLinks(location);
+      updateAccessStatus(status);
+      updateLiveStatus(status);
+      updateStatusSummary(status, rider);
+      maybeShowAccidentPopup(Boolean(status.accidentDetected));
+    }
 
-        helmetRef
-          .set(fallbackHelmetData)
-          .catch((error) => {
-            console.error("Unable to seed missing helmet data:", error);
-          })
-          .finally(() => {
-            isSeedingMissingHelmet = false;
-          });
-      }
+    function normalizeLocation(location) {
+      const lat = Number(location.lat);
+      const lng = Number(location.lng);
 
-      function mergeHelmetData(incomingData) {
-        return {
-          rider: {
-            ...createDemoHelmetData(helmetId).rider,
-            ...(incomingData && incomingData.rider ? incomingData.rider : {}),
-          },
-          status: {
-            ...createDemoHelmetData(helmetId).status,
-            ...(incomingData && incomingData.status ? incomingData.status : {}),
-          },
-          location: {
-            ...DEFAULT_LOCATION,
-            ...(incomingData && incomingData.location
-              ? incomingData.location
-              : {}),
-          },
-        };
-      }
+      return {
+        lat: Number.isFinite(lat) ? lat : DEFAULT_LOCATION.lat,
+        lng: Number.isFinite(lng) ? lng : DEFAULT_LOCATION.lng
+      };
+    }
 
-      function renderHelmetData(helmetData) {
-        const rider = helmetData.rider || {};
-        const status = helmetData.status || {};
-        const location = normalizeLocation(helmetData.location || {});
-        const gpsOnline = Boolean(status.gpsOnline);
-        const overallStatus = getOverallStatus(status);
+    function updateMapLinks(location) {
+      const embedUrl =
+        "https://maps.google.com/maps?q=" + location.lat + "," + location.lng + "&z=15&output=embed";
+      const mapsUrl =
+        "https://www.google.com/maps?q=" + location.lat + "," + location.lng;
 
-        ui.riderAvatar.textContent = (rider.name || helmetId)
-          .charAt(0)
-          .toUpperCase();
-        ui.riderName.textContent = rider.name || "Unknown Rider";
-        ui.helmetMeta.textContent =
-          "Helmet ID: " + helmetId + " • Opened via QR Scan";
-        ui.overallStatusChip.textContent = overallStatus.text;
-        ui.overallStatusChip.className =
-          "safe-chip" + (overallStatus.tone ? " " + overallStatus.tone : "");
+      ui.riderMapFrame.src = embedUrl;
+      ui.topMapLink.href = mapsUrl;
+      ui.accessMapLink.href = mapsUrl;
+    }
 
-        ui.bloodGroupValue.textContent = rider.bloodGroup || "Not available";
-        ui.emergencyContactValue.textContent =
-          rider.emergencyContact || "Not available";
-        ui.cityValue.textContent = rider.city || "Not available";
-        ui.medicalNoteValue.textContent = rider.medicalNote || "Not available";
+    function updateAccessStatus(status) {
+      const gpsOnline = Boolean(status.gpsOnline);
+      const sosActive = Boolean(status.sosActive);
+      const accidentDetected = Boolean(status.accidentDetected);
+      const alcoholSafe = Boolean(status.alcoholSafe);
 
-        ui.lastUpdatedQuick.textContent =
-          "🕒 Last Updated: " + (status.lastUpdated || "Just Now");
-        ui.gpsQuickStatus.textContent =
-          "📍 GPS Status: " + (gpsOnline ? "Always ON" : "Offline");
-        ui.accessLastUpdatedText.textContent = status.lastUpdated || "Just Now";
+      setStatusIndicator(
+        ui.accessEmergencyDot,
+        ui.accessEmergencyText,
+        !sosActive,
+        "System Ready",
+        "SOS Active",
+        "green",
+        "red"
+      );
 
-        updateMapLinks(location);
-        updateAccessStatus(status);
-        updateLiveStatus(status);
-        updateStatusSummary(status, rider);
-        maybeShowAccidentPopup(Boolean(status.accidentDetected));
-      }
+      setStatusIndicator(
+        ui.accessGpsDot,
+        ui.accessGpsText,
+        gpsOnline,
+        "Always ON",
+        "Offline",
+        "blue",
+        "red"
+      );
 
-      function normalizeLocation(location) {
-        const lat = Number(location.lat);
-        const lng = Number(location.lng);
+      setStatusIndicator(
+        ui.accessAccidentDot,
+        ui.accessAccidentText,
+        !accidentDetected,
+        "No Accident",
+        "Accident Detected",
+        "green",
+        "red"
+      );
 
-        return {
-          lat: Number.isFinite(lat) ? lat : DEFAULT_LOCATION.lat,
-          lng: Number.isFinite(lng) ? lng : DEFAULT_LOCATION.lng,
-        };
-      }
+      setStatusIndicator(
+        ui.accessAlcoholDot,
+        ui.accessAlcoholText,
+        alcoholSafe,
+        "Safe",
+        "Alcohol Detected",
+        "green",
+        "red"
+      );
 
-      function updateMapLinks(location) {
-        const embedUrl =
-          "https://maps.google.com/maps?q=" +
-          location.lat +
-          "," +
-          location.lng +
-          "&z=15&output=embed";
-        const mapsUrl =
-          "https://www.google.com/maps?q=" + location.lat + "," + location.lng;
+      setStatusIndicator(
+        ui.accessLastUpdatedDot,
+        ui.accessLastUpdatedText,
+        true,
+        status.lastUpdated || "Just Now",
+        status.lastUpdated || "Just Now",
+        "blue",
+        "blue"
+      );
+    }
 
-        ui.riderMapFrame.src = embedUrl;
-        ui.topMapLink.href = mapsUrl;
-        ui.accessMapLink.href = mapsUrl;
-      }
+    function updateLiveStatus(status) {
+      const helmetWorn = Boolean(status.helmetWorn);
+      const alcoholSafe = Boolean(status.alcoholSafe);
+      const gpsOnline = Boolean(status.gpsOnline);
+      const emergencyReady = !Boolean(status.sosActive) && !Boolean(status.accidentDetected);
 
-      function updateAccessStatus(status) {
-        const gpsOnline = Boolean(status.gpsOnline);
-        const sosActive = Boolean(status.sosActive);
-        const accidentDetected = Boolean(status.accidentDetected);
+      const emergencyText = Boolean(status.accidentDetected)
+        ? "Accident Detected"
+        : Boolean(status.sosActive)
+        ? "SOS Active"
+        : "Ready";
 
-        setStatusIndicator(
-          ui.accessEmergencyDot,
-          ui.accessEmergencyText,
-          !sosActive,
-          "System Ready",
-          "SOS Active",
-          "green",
-          "red",
-        );
-        setStatusIndicator(
-          ui.accessGpsDot,
-          ui.accessGpsText,
-          gpsOnline,
-          "Always ON",
-          "Offline",
-          "blue",
-          "red",
-        );
-        setStatusIndicator(
-          ui.accessAccidentDot,
-          ui.accessAccidentText,
-          !accidentDetected,
-          "No Accident",
-          "Accident Detected",
-          "green",
-          "red",
-        );
-        setStatusIndicator(
-          ui.accessLastUpdatedDot,
-          ui.accessLastUpdatedText,
-          true,
-          status.lastUpdated || "Just Now",
-          status.lastUpdated || "Just Now",
-          "blue",
-          "blue",
-        );
-      }
+      setStatusIndicator(
+        ui.statusHelmetDot,
+        ui.statusHelmetText,
+        helmetWorn,
+        "Helmet Worn",
+        "Helmet Not Worn",
+        "green",
+        "red"
+      );
 
-      function updateLiveStatus(status) {
-        const gpsOnline = Boolean(status.gpsOnline);
-        const helmetWorn = Boolean(status.helmetWorn);
-        const alcoholSafe = Boolean(status.alcoholSafe);
-        const emergencyReady =
-          !Boolean(status.sosActive) && !Boolean(status.accidentDetected);
-        const emergencyText = Boolean(status.accidentDetected)
-          ? "Accident Detected"
-          : Boolean(status.sosActive)
-            ? "SOS Active"
-            : "Ready";
+      setStatusIndicator(
+        ui.statusAlcoholDot,
+        ui.statusAlcoholText,
+        alcoholSafe,
+        "Safe",
+        "Unsafe",
+        "green",
+        "red"
+      );
 
-        setStatusIndicator(
-          ui.statusHelmetDot,
-          ui.statusHelmetText,
-          helmetWorn,
-          "Helmet Worn",
-          "Helmet Not Worn",
-          "green",
-          "red",
-        );
-        setStatusIndicator(
-          ui.statusAlcoholDot,
-          ui.statusAlcoholText,
-          alcoholSafe,
-          "Safe",
-          "Unsafe",
-          "green",
-          "red",
-        );
-        setStatusIndicator(
-          ui.statusGpsDot,
-          ui.statusGpsText,
-          gpsOnline,
-          "GPS Always Online",
-          "GPS Offline",
-          "blue",
-          "red",
-        );
-        setStatusIndicator(
-          ui.statusEmergencyDot,
-          ui.statusEmergencyText,
-          emergencyReady,
-          "Ready",
-          emergencyText,
-          "green",
-          "red",
-        );
-      }
+      setStatusIndicator(
+        ui.statusGpsDot,
+        ui.statusGpsText,
+        gpsOnline,
+        "GPS Always Online",
+        "GPS Offline",
+        "blue",
+        "red"
+      );
 
-      function updateStatusSummary(status, rider) {
-        const contact = rider.emergencyContact || "the emergency contact";
+      setStatusIndicator(
+        ui.statusEmergencyDot,
+        ui.statusEmergencyText,
+        emergencyReady,
+        "Ready",
+        emergencyText,
+        "green",
+        "red"
+      );
+    }
 
-        if (status.accidentDetected) {
-          ui.statusSummaryText.innerHTML =
-            "💥 <strong>Accident mode is active.</strong> Live location is ready to share with " +
-            escapeHtml(contact) +
-            " and emergency responders.";
-          return;
-        }
+    function updateStatusSummary(status, rider) {
+      const contact = rider.emergencyContact || "the emergency contact";
 
-        if (status.sosActive) {
-          ui.statusSummaryText.innerHTML =
-            "🚨 <strong>SOS mode is active.</strong> This helmet has requested emergency attention and the latest GPS location is available.";
-          return;
-        }
-
+      if (status.accidentDetected) {
         ui.statusSummaryText.innerHTML =
-          "💜 <strong>Need quick help?</strong> You can send the live GPS location directly to your parents or loved ones from this page.";
+          "💥 <strong>Accident mode is active.</strong> Live location is ready to share with " +
+          escapeHtml(contact) +
+          " and emergency responders.";
+        return;
       }
 
-      function getOverallStatus(status) {
-        if (status.accidentDetected) {
-          return { text: "Emergency: Accident Detected", tone: "danger" };
+      if (status.sosActive) {
+        ui.statusSummaryText.innerHTML =
+          "🚨 <strong>SOS mode is active.</strong> This helmet has requested emergency attention and the latest GPS location is available.";
+        return;
+      }
+
+      ui.statusSummaryText.innerHTML =
+        "💜 <strong>Need quick help?</strong> You can send the live GPS location directly to your parents or loved ones from this page.";
+    }
+
+    function getOverallStatus(status) {
+      if (status.accidentDetected) {
+        return { text: "Emergency: Accident Detected", tone: "danger" };
+      }
+
+      if (status.sosActive) {
+        return { text: "Emergency: SOS Active", tone: "danger" };
+      }
+
+      if (!status.helmetWorn) {
+        return { text: "Warning: Helmet Not Worn", tone: "warning" };
+      }
+
+      if (!status.alcoholSafe) {
+        return { text: "Warning: Alcohol Alert", tone: "warning" };
+      }
+
+      return { text: "Current Status: Safe to Ride", tone: "" };
+    }
+
+    function setStatusIndicator(
+      dotElement,
+      textElement,
+      isPositive,
+      positiveText,
+      negativeText,
+      positiveClass,
+      negativeClass
+    ) {
+      dotElement.className = "dot " + (isPositive ? positiveClass : negativeClass);
+      textElement.textContent = isPositive ? positiveText : negativeText;
+    }
+
+    function maybeShowAccidentPopup(accidentDetected) {
+      if (previousAccidentDetected === false && accidentDetected) {
+        alert(ACCIDENT_POPUP_MESSAGE);
+      }
+      previousAccidentDetected = accidentDetected;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function triggerSOS() {
+      updateHelmetStatus(
+        { sosActive: true, lastUpdated: "Just Now" },
+        SOS_SUCCESS_MESSAGE
+      );
+    }
+
+    function simulateAccident() {
+      updateHelmetStatus(
+        { accidentDetected: true, lastUpdated: "Just Now" },
+        "Accident detected! Emergency mode activated."
+      );
+    }
+
+    function simulateAlcoholDetection() {
+      updateHelmetStatus(
+        { alcoholSafe: false, lastUpdated: "Just Now" },
+        "Alcohol detected! Rider is not safe to ride."
+      );
+    }
+
+    function sendGPSToLovedOnes() {
+      alert(GPS_SUCCESS_MESSAGE);
+    }
+
+    function chatbotDanger() {
+      triggerSOS();
+      ui.chatbotResponse.innerHTML =
+        "🚨 Danger mode activated. SOS triggered for immediate emergency response.";
+    }
+
+    function chatbotMedical() {
+      window.open(
+        "https://www.google.com/maps/search/hospital/@" +
+          currentLocationCache.lat +
+          "," +
+          currentLocationCache.lng +
+          ",15z",
+        "_blank"
+      );
+      ui.chatbotResponse.innerHTML =
+        "🏥 Medical help selected. Nearby hospitals are opening in Google Maps.";
+    }
+
+    function chatbotShareLocation() {
+      sendGPSToLovedOnes();
+      ui.chatbotResponse.innerHTML =
+        "📍 Live location ready. Share your current GPS with parents or loved ones.";
+    }
+
+    async function updateHelmetStatus(statusUpdate, successMessage) {
+      try {
+        if (usingFirebase && database) {
+          await database.ref(helmetPath + "/status").update(statusUpdate);
+        } else {
+          fallbackHelmetData = mergeHelmetData({
+            ...fallbackHelmetData,
+            status: {
+              ...fallbackHelmetData.status,
+              ...statusUpdate
+            }
+          });
+          renderHelmetData(fallbackHelmetData);
         }
 
-        if (status.sosActive) {
-          return { text: "Emergency: SOS Active", tone: "danger" };
+        if (successMessage) {
+          alert(successMessage);
         }
-
-        if (!status.helmetWorn) {
-          return { text: "Warning: Helmet Not Worn", tone: "warning" };
-        }
-
-        if (!status.alcoholSafe) {
-          return { text: "Warning: Alcohol Alert", tone: "warning" };
-        }
-
-        return { text: "Current Status: Safe to Ride", tone: "" };
+      } catch (error) {
+        console.error("Status update failed:", error);
+        alert("Unable to update helmet status right now. Please check your Firebase setup.");
       }
+    }
 
-      function setStatusIndicator(
-        dotElement,
-        textElement,
-        isPositive,
-        positiveText,
-        negativeText,
-        positiveClass,
-        negativeClass,
-      ) {
-        dotElement.className =
-          "dot " + (isPositive ? positiveClass : negativeClass);
-        textElement.textContent = isPositive ? positiveText : negativeText;
+    function openTab(evt, tabId) {
+      const panels = document.querySelectorAll(".tab-panel");
+      const buttons = document.querySelectorAll(".tab-btn");
+
+      panels.forEach((panel) => panel.classList.remove("active"));
+      buttons.forEach((button) => button.classList.remove("active"));
+
+      document.getElementById(tabId).classList.add("active");
+      evt.currentTarget.classList.add("active");
+    }
+
+    function toggleAssistant(open) {
+      const drawer = document.getElementById("smartAssistantDrawer");
+      const overlay = document.getElementById("assistantOverlay");
+      const page = document.getElementById("pageShift");
+
+      if (!drawer || !overlay || !page) return;
+
+      if (open) {
+        drawer.classList.add("open");
+        overlay.classList.add("show");
+        page.classList.add("assistant-open");
+        document.body.style.overflow = "hidden";
+      } else {
+        drawer.classList.remove("open");
+        overlay.classList.remove("show");
+        page.classList.remove("assistant-open");
+        document.body.style.overflow = "";
       }
-
-      function maybeShowAccidentPopup(accidentDetected) {
-        if (previousAccidentDetected === false && accidentDetected) {
-          alert(ACCIDENT_POPUP_MESSAGE);
-        }
-
-        previousAccidentDetected = accidentDetected;
-      }
-
-      function escapeHtml(value) {
-        return String(value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#39;");
-      }
-
-      function triggerSOS() {
-        updateHelmetStatus(
-          { sosActive: true, lastUpdated: "Just Now" },
-          SOS_SUCCESS_MESSAGE,
-        );
-      }
-
-      function simulateAccident() {
-        updateHelmetStatus({ accidentDetected: true, lastUpdated: "Just Now" });
-      }
-
-      function sendGPSToLovedOnes() {
-        alert(GPS_SUCCESS_MESSAGE);
-      }
-
-      async function updateHelmetStatus(statusUpdate, successMessage) {
-        try {
-          if (usingFirebase && database) {
-            await database.ref(helmetPath + "/status").update(statusUpdate);
-          } else {
-            fallbackHelmetData = mergeHelmetData({
-              ...fallbackHelmetData,
-              status: {
-                ...fallbackHelmetData.status,
-                ...statusUpdate,
-              },
-            });
-            renderHelmetData(fallbackHelmetData);
-          }
-
-          if (successMessage) {
-            alert(successMessage);
-          }
-        } catch (error) {
-          console.error("Status update failed:", error);
-          alert(
-            "Unable to update helmet status right now. Please check your Firebase setup.",
-          );
-        }
-      }
-
-      function openTab(evt, tabId) {
-        const panels = document.querySelectorAll(".tab-panel");
-        const buttons = document.querySelectorAll(".tab-btn");
-
-        panels.forEach((panel) => panel.classList.remove("active"));
-        buttons.forEach((button) => button.classList.remove("active"));
-
-        document.getElementById(tabId).classList.add("active");
-        evt.currentTarget.classList.add("active");
-      }
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>
