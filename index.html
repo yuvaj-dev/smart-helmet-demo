@@ -636,18 +636,6 @@
       box-shadow: 0 14px 30px rgba(139, 92, 246, 0.28);
     }
 
-    .assistant-live-badge {
-      margin-left: auto;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.8px;
-      color: #fff;
-      background: linear-gradient(135deg, #22c55e, #14b8a6);
-      box-shadow: 0 8px 18px rgba(34, 197, 94, 0.25);
-    }
-
     .assistant-status-card {
       position: relative;
       z-index: 1;
@@ -726,29 +714,6 @@
 
     .location-chip:hover {
       background: linear-gradient(135deg, rgba(6, 182, 212, 0.18), rgba(139, 92, 246, 0.14));
-    }
-
-    .assistant-footer-card {
-      position: relative;
-      z-index: 1;
-      margin-top: auto;
-      padding: 16px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(255, 79, 163, 0.08), rgba(139, 92, 246, 0.12));
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .assistant-footer-card strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .assistant-footer-card p {
-      margin: 0;
-      font-size: 12px;
-      line-height: 1.6;
-      color: rgba(248, 250, 252, 0.76);
     }
 
     .footer {
@@ -924,7 +889,7 @@
         <p>
           Rider details are shown first for quick emergency access. Other sections like
           emergency actions, live status, and helmet features 
-           placed in simple tabs
+          placed in simple tabs
           below for a cleaner and more premium experience.
         </p>
       </section>
@@ -987,7 +952,6 @@
               </div>
 
               <div class="quick-fill">
-                
                 <div class="pill-row">
                   <span class="pill">Live GPS</span>
                   <span class="pill">SOS Ready</span>
@@ -1001,6 +965,10 @@
 
               <button class="btn btn-sos large" onclick="triggerSOS()">
                 🚨 Activate SOS
+              </button>
+
+              <button class="btn btn-map" onclick="openLiveGPS()">
+                📍 Live GPS
               </button>
 
               <a
@@ -1078,9 +1046,7 @@
             </div>
           </div>
 
-          <div style="display: grid; gap: 12px; margin-top: 16px">
-        
-          </div>
+          <div style="display: grid; gap: 12px; margin-top: 16px"></div>
         </section>
 
         <section id="statusTab" class="glass tab-panel">
@@ -1232,7 +1198,6 @@
           <h4>Smart Help Assistant</h4>
           <p>Instant emergency actions • AI support panel</p>
         </div>
-    
       </div>
 
       <div class="assistant-status-card">
@@ -1272,7 +1237,6 @@
           <span>Quickly send GPS to parents or loved ones</span>
         </button>
       </div>
-
     </div>
   </div>
 
@@ -1349,6 +1313,7 @@
     let isSeedingMissingHelmet = false;
     let previousAccidentDetected = null;
     let currentLocationCache = { ...DEFAULT_LOCATION };
+    let helmetData = null;
 
     initializeHelmetPage();
 
@@ -1429,8 +1394,9 @@
             return;
           }
 
-          const helmetData = mergeHelmetData(snapshot.val());
-          renderHelmetData(helmetData);
+          const incoming = snapshot.val() || {};
+          const merged = mergeHelmetData(incoming);
+          renderHelmetData(merged);
         },
         (error) => {
           console.error("Realtime listener failed, switching to local demo data:", error);
@@ -1456,13 +1422,15 @@
     }
 
     function mergeHelmetData(incomingData) {
+      const base = createDemoHelmetData(helmetId);
+
       return {
         rider: {
-          ...createDemoHelmetData(helmetId).rider,
+          ...base.rider,
           ...(incomingData && incomingData.rider ? incomingData.rider : {})
         },
         status: {
-          ...createDemoHelmetData(helmetId).status,
+          ...base.status,
           ...(incomingData && incomingData.status ? incomingData.status : {})
         },
         location: {
@@ -1472,10 +1440,12 @@
       };
     }
 
-    function renderHelmetData(helmetData) {
-      const rider = helmetData.rider || {};
-      const status = helmetData.status || {};
-      const location = normalizeLocation(helmetData.location || {});
+    function renderHelmetData(data) {
+      helmetData = data;
+
+      const rider = data.rider || {};
+      const status = data.status || {};
+      const location = normalizeLocation(data.location || {});
       currentLocationCache = location;
       fallbackHelmetData.location = location;
 
@@ -1518,9 +1488,12 @@
       const mapsUrl =
         "https://www.google.com/maps?q=" + location.lat + "," + location.lng;
 
-      ui.riderMapFrame.src = embedUrl;
-      ui.topMapLink.href = mapsUrl;
-      ui.accessMapLink.href = mapsUrl;
+      if (ui.riderMapFrame && ui.riderMapFrame.src !== embedUrl) {
+        ui.riderMapFrame.src = embedUrl;
+      }
+
+      if (ui.topMapLink) ui.topMapLink.href = mapsUrl;
+      if (ui.accessMapLink) ui.accessMapLink.href = mapsUrl;
     }
 
     function updateAccessStatus(status) {
@@ -1724,8 +1697,44 @@
       );
     }
 
+    function openLiveGPS() {
+      if (!helmetData || !helmetData.location) {
+        alert("Live GPS not available yet.");
+        return;
+      }
+
+      const location = normalizeLocation(helmetData.location);
+      const mapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+      window.open(mapsUrl, "_blank");
+    }
+
     function sendGPSToLovedOnes() {
-      alert(GPS_SUCCESS_MESSAGE);
+      if (!helmetData || !helmetData.location) {
+        alert("Live GPS not available yet.");
+        return;
+      }
+
+      const location = normalizeLocation(helmetData.location);
+      const mapsUrl = `https://www.google.com/maps?q=${location.lat},${location.lng}`;
+      const message = `Emergency! Please track my live location here: ${mapsUrl}`;
+
+      if (navigator.share) {
+        navigator.share({
+          title: "Live GPS Location",
+          text: message,
+          url: mapsUrl
+        }).catch(() => {});
+        return;
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(message)
+          .then(() => alert("Live GPS link copied! Share it with parents or loved ones."))
+          .catch(() => alert(GPS_SUCCESS_MESSAGE + "\n" + mapsUrl));
+        return;
+      }
+
+      alert(GPS_SUCCESS_MESSAGE + "\n" + mapsUrl);
     }
 
     function chatbotDanger() {
@@ -1735,14 +1744,19 @@
     }
 
     function chatbotMedical() {
+      const location = helmetData && helmetData.location
+        ? normalizeLocation(helmetData.location)
+        : currentLocationCache;
+
       window.open(
         "https://www.google.com/maps/search/hospital/@" +
-          currentLocationCache.lat +
+          location.lat +
           "," +
-          currentLocationCache.lng +
+          location.lng +
           ",15z",
         "_blank"
       );
+
       ui.chatbotResponse.innerHTML =
         "🏥 Medical help selected. Nearby hospitals are opening in Google Maps.";
     }
@@ -1757,6 +1771,16 @@
       try {
         if (usingFirebase && database) {
           await database.ref(helmetPath + "/status").update(statusUpdate);
+
+          if (helmetData) {
+            helmetData = {
+              ...helmetData,
+              status: {
+                ...(helmetData.status || {}),
+                ...statusUpdate
+              }
+            };
+          }
         } else {
           fallbackHelmetData = mergeHelmetData({
             ...fallbackHelmetData,
