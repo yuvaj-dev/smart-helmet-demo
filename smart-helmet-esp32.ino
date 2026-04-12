@@ -1,114 +1,107 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
-#include <Wire.h>
 #include <TinyGPS++.h>
-#include <math.h>
-
-// =====================================================
-// SMART HELMET - FINAL HACKATHON VERSION
-// Features:
-// - MQ3 alcohol detection
-// - Helmet wear detection
-// - Raw IMU (MPU-compatible clone) accident detection
-// - GPS (real if available, fallback if not)
-// - Firebase Realtime Database integration via REST
-// =====================================================
+#include <Wire.h>
+#include <TM1637Display.h>
 
 // ====================== WIFI CONFIG ======================
-// IMPORTANT: Use a mobile hotspot with these exact credentials for demo
-const char* WIFI_SSID = "SmartHelmetDemo";
-const char* WIFI_PASSWORD = "helmet123";
+const char *WIFI_SSID = "SmartHelmetDemo";
+const char *WIFI_PASSWORD = "helmet123";
 
-// ====================== FIREBASE CONFIG ======================
-const char* FIREBASE_BASE_URL = "https://smart-helmet-demo-8f1d9-default-rtdb.asia-southeast1.firebasedatabase.app";
-const char* HELMET_ID = "HLM001";
+// ====================== FIREBASE / SERVER CONFIG ======================
+const char *FIREBASE_BASE_URL = "https://smart-helmet-demo-8f1d9-default-rtdb.asia-southeast1.firebasedatabase.app";
+const char *HELMET_ID = "HLM001";
+const char *HELMET_TAG_ID = "QR-HLM001";
+
+// ====================== RIDER INFO (FRONTEND COMPATIBLE) ======================
+const char *RIDER_NAME = "Yuvraj";
+const char *RIDER_BLOOD_GROUP = "B+";
+const char *RIDER_EMERGENCY_CONTACT = "+919876543210";
+const char *RIDER_CITY = "Delhi, India";
+const char *RIDER_MEDICAL_NOTE = "No Known Allergies";
 
 // ====================== PIN CONFIG ======================
-const int MQ3_PIN = 34;             // Analog input
-const int HELMET_WEAR_PIN = 27;     // Digital input (LOW = helmet worn)
+const int MQ3_PIN = 34;
+const int HELMET_WEAR_PIN = 27;
+
+// TM1637 display
+const int TM1637_CLK_PIN = 18;
+const int TM1637_DIO_PIN = 19;
+TM1637Display display(TM1637_CLK_PIN, TM1637_DIO_PIN);
 
 // GPS UART2
-const int GPS_RX_PIN = 16;          // GPS TX -> ESP32 RX2
-const int GPS_TX_PIN = 17;          // GPS RX -> ESP32 TX2
+const int GPS_RX_PIN = 16; // ESP32 RX <- GPS TX
+const int GPS_TX_PIN = 17; // ESP32 TX -> GPS RX
 HardwareSerial gpsSerial(2);
 TinyGPSPlus gps;
 
-// I2C pins for MPU-compatible IMU
+// MPU6050 I2C
+const uint8_t MPU_ADDR = 0x68;
 const int MPU_SDA_PIN = 21;
 const int MPU_SCL_PIN = 22;
-
-// ====================== MPU CONFIG ======================
-const uint8_t MPU_ADDR = 0x68;      // Most common I2C address
-const uint8_t WHO_AM_I_REG = 0x75;
-const uint8_t PWR_MGMT_1 = 0x6B;
-const uint8_t ACCEL_START_REG = 0x3B;
 
 // ====================== GPS FALLBACK ======================
 float fallbackLat = 28.6139;
 float fallbackLng = 77.2090;
 
+// Store last good GPS fix
+float lastValidLat = fallbackLat;
+float lastValidLng = fallbackLng;
+bool hasEverHadFix = false;
+
 // ====================== THRESHOLDS ======================
-const int MQ3_THRESHOLD = 1800;           // Tune after real testing
-const float ACCEL_DELTA_THRESHOLD = 0.65; // Sudden accel change (g approx)
-const float GYRO_THRESHOLD = 180.0;       // deg/sec rough threshold
-const float TILT_THRESHOLD = 55.0;        // degrees
-const unsigned long UPDATE_INTERVAL = 2500;
-const unsigned long ACCIDENT_HOLD_MS = 3000;  // Must remain suspicious for 3 sec
+const int MQ3_THRESHOLD = 1800;
+const unsigned long UPDATE_INTERVAL = 3000;
+
+// Movement / accident thresholds
+const float MOVING_ACCEL_DELTA = 3500.0;
+const float ACCIDENT_ACCEL_DELTA = 12000.0;
+const float TILT_THRESHOLD_DEG = 55.0;
+const unsigned long ACCIDENT_HOLD_MS = 1500;
+const unsigned long HELMET_REMOVED_ALERT_MS = 2000;
 
 // ====================== STATE ======================
 unsigned long lastUpdate = 0;
+unsigned long accidentStartTime = 0;
+unsigned long helmetRemovedStartTime = 0;
+unsigned long lastGpsDebugTime = 0;
+
 bool accidentDetected = false;
-bool accidentSuspected = false;
-unsigned long accidentSuspectStart = 0;
-bool mpuHealthy = false;
-int mpuReadFailCount = 0;
+bool movingNow = false;
+bool helmetRemovedWhileMoving = false;
+bool gpsSentenceSeen = false;
 
-// Previous accel for delta
-float prevAxG = 0.0;
-float prevAyG = 0.0;
-float prevAzG = 0.0;
-bool firstAccelSample = true;
-
-// ====================== STRUCT ======================
-struct IMUData {
-  int16_t axRaw = 0;
-  int16_t ayRaw = 0;
-  int16_t azRaw = 0;
-  int16_t gxRaw = 0;
-  int16_t gyRaw = 0;
-  int16_t gzRaw = 0;
-
-  float axG = 0;
-  float ayG = 0;
-  float azG = 0;
-
-  float gxDps = 0;
-  float gyDps = 0;
-  float gzDps = 0;
-
-  float tiltDeg = 0;
-  float accelDelta = 0;
-  bool valid = false;
-};
+// Raw MPU values
+int16_t ax = 0, ay = 0, az = 0, gx = 0, gy = 0, gz = 0;
+int16_t prevAx = 0, prevAy = 0, prevAz = 0;
 
 // ====================== HELPERS ======================
-String boolToJson(bool value) {
+String boolToJson(bool value)
+{
   return value ? "true" : "false";
 }
 
-// ====================== WIFI ======================
-bool connectWiFi() {
+float absf(float x)
+{
+  return (x < 0) ? -x : x;
+}
+
+bool connectWiFi()
+{
   Serial.print("Connecting to WiFi");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   int attempts = 0;
-  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+  while (WiFi.status() != WL_CONNECTED && attempts < 30)
+  {
     delay(500);
     Serial.print(".");
     attempts++;
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED)
+  {
     Serial.println("\nWiFi connected!");
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
@@ -119,235 +112,253 @@ bool connectWiFi() {
   return false;
 }
 
-// ====================== MPU LOW LEVEL ======================
-bool mpuWriteByte(uint8_t reg, uint8_t data) {
+// ====================== MPU6050 RAW ACCESS ======================
+void writeMPURegister(uint8_t reg, uint8_t value)
+{
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(reg);
-  Wire.write(data);
-  return (Wire.endTransmission() == 0);
+  Wire.write(value);
+  Wire.endTransmission(true);
 }
 
-bool mpuReadBytes(uint8_t reg, uint8_t* buffer, size_t len) {
-  Wire.beginTransmission(MPU_ADDR);
-  Wire.write(reg);
-  if (Wire.endTransmission(false) != 0) {
-    return false;
-  }
-
-  size_t received = Wire.requestFrom((int)MPU_ADDR, (int)len, (int)true);
-  if (received != len) {
-    return false;
-  }
-
-  for (size_t i = 0; i < len; i++) {
-    buffer[i] = Wire.read();
-  }
-  return true;
-}
-
-bool initMPU() {
+bool initMPU6050()
+{
   Wire.begin(MPU_SDA_PIN, MPU_SCL_PIN);
-  Wire.setClock(100000); // More stable for loose/clone hardware
 
-  uint8_t who = 0;
-  if (!mpuReadBytes(WHO_AM_I_REG, &who, 1)) {
-    Serial.println("MPU WHO_AM_I read failed");
-    return false;
-  }
-
-  Serial.print("MPU WHO_AM_I = 0x");
-  Serial.println(who, HEX);
-
-  // Wake sensor from sleep
-  if (!mpuWriteByte(PWR_MGMT_1, 0x00)) {
-    Serial.println("Failed to wake MPU");
-    return false;
-  }
-
+  writeMPURegister(0x6B, 0x00);
   delay(100);
-  Serial.println("MPU init complete");
+
+  // accel ±2g, gyro ±250°/s
+  writeMPURegister(0x1C, 0x00);
+  writeMPURegister(0x1B, 0x00);
+
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x75);
+  if (Wire.endTransmission(false) != 0)
+  {
+    return false;
+  }
+
+  Wire.requestFrom((int)MPU_ADDR, 1, true);
+  if (Wire.available())
+  {
+    uint8_t who = Wire.read();
+    return (who == 0x68 || who == 0x70);
+  }
+
+  return false;
+}
+
+bool readMPU6050Raw()
+{
+  Wire.beginTransmission(MPU_ADDR);
+  Wire.write(0x3B);
+  if (Wire.endTransmission(false) != 0)
+  {
+    return false;
+  }
+
+  Wire.requestFrom((int)MPU_ADDR, 14, true);
+  if (Wire.available() < 14)
+  {
+    return false;
+  }
+
+  ax = (Wire.read() << 8) | Wire.read();
+  ay = (Wire.read() << 8) | Wire.read();
+  az = (Wire.read() << 8) | Wire.read();
+
+  // skip temp
+  Wire.read();
+  Wire.read();
+
+  gx = (Wire.read() << 8) | Wire.read();
+  gy = (Wire.read() << 8) | Wire.read();
+  gz = (Wire.read() << 8) | Wire.read();
+
   return true;
 }
 
-IMUData readIMU() {
-  IMUData data;
-  uint8_t raw[14];
+float estimateTiltDeg()
+{
+  float axf = (float)ax;
+  float ayf = (float)ay;
+  float azf = (float)az;
 
-  if (!mpuReadBytes(ACCEL_START_REG, raw, 14)) {
-    mpuReadFailCount++;
-    Serial.println("IMU read failed");
-    data.valid = false;
-    return data;
-  }
+  float denominator = sqrt(ayf * ayf + azf * azf);
+  if (denominator < 1.0f)
+    denominator = 1.0f;
 
-  mpuReadFailCount = 0;
-  data.valid = true;
-
-  data.axRaw = (int16_t)((raw[0] << 8) | raw[1]);
-  data.ayRaw = (int16_t)((raw[2] << 8) | raw[3]);
-  data.azRaw = (int16_t)((raw[4] << 8) | raw[5]);
-
-  data.gxRaw = (int16_t)((raw[8] << 8) | raw[9]);
-  data.gyRaw = (int16_t)((raw[10] << 8) | raw[11]);
-  data.gzRaw = (int16_t)((raw[12] << 8) | raw[13]);
-
-  // Assuming default MPU6050 ranges:
-  data.axG = data.axRaw / 16384.0;
-  data.ayG = data.ayRaw / 16384.0;
-  data.azG = data.azRaw / 16384.0;
-
-  data.gxDps = data.gxRaw / 131.0;
-  data.gyDps = data.gyRaw / 131.0;
-  data.gzDps = data.gzRaw / 131.0;
-
-  // Tilt estimation from accel
-  float horiz = sqrt(data.axG * data.axG + data.ayG * data.ayG);
-  data.tiltDeg = atan2(horiz, fabs(data.azG)) * 180.0 / PI;
-
-  // Sudden acceleration delta
-  if (firstAccelSample) {
-    data.accelDelta = 0;
-    prevAxG = data.axG;
-    prevAyG = data.ayG;
-    prevAzG = data.azG;
-    firstAccelSample = false;
-  } else {
-    float dx = data.axG - prevAxG;
-    float dy = data.ayG - prevAyG;
-    float dz = data.azG - prevAzG;
-    data.accelDelta = sqrt(dx * dx + dy * dy + dz * dz);
-
-    prevAxG = data.axG;
-    prevAyG = data.ayG;
-    prevAzG = data.azG;
-  }
-
-  return data;
+  float tiltRad = atan(axf / denominator);
+  return absf(tiltRad * 180.0f / PI);
 }
 
-// ====================== ACCIDENT LOGIC ======================
-bool isSuspiciousMotion(const IMUData& imu) {
-  if (!imu.valid) return false;
-
-  float maxGyro = max(fabs(imu.gxDps), max(fabs(imu.gyDps), fabs(imu.gzDps)));
-
-  bool suddenImpact = imu.accelDelta > ACCEL_DELTA_THRESHOLD;
-  bool suddenRotation = maxGyro > GYRO_THRESHOLD;
-  bool severeTilt = imu.tiltDeg > TILT_THRESHOLD;
-
-  // Stronger logic: impact + (tilt or rotation)
-  bool suspicious = suddenImpact && (severeTilt || suddenRotation);
-
-  return suspicious;
+float accelDelta()
+{
+  float dx = (float)(ax - prevAx);
+  float dy = (float)(ay - prevAy);
+  float dz = (float)(az - prevAz);
+  return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void updateAccidentState(const IMUData& imu, bool helmetWorn) {
-  // If helmet not worn, don't mark accident from motion
-  if (!helmetWorn) {
-    accidentSuspected = false;
-    accidentDetected = false;
+// ====================== DISPLAY ======================
+void showSafe()
+{
+  uint8_t data[] = {
+      display.encodeDigit(5), // S approximation
+      0x77,                   // A
+      0x71,                   // F
+      0x79                    // E
+  };
+  display.setSegments(data);
+}
+
+void showHelp()
+{
+  uint8_t data[] = {
+      0x76, // H
+      0x79, // E
+      0x38, // L
+      0x73  // P
+  };
+  display.setSegments(data);
+}
+
+void showStop()
+{
+  uint8_t data[] = {
+      display.encodeDigit(5), // S approximation
+      0x78,                   // t
+      0x3F,                   // O
+      0x73                    // P
+  };
+  display.setSegments(data);
+}
+
+void updateDisplay(bool helmetWorn, bool alcoholSafe, bool accidentDetected)
+{
+  if (accidentDetected)
+  {
+    showHelp();
+  }
+  else if (helmetWorn && alcoholSafe)
+  {
+    showSafe();
+  }
+  else
+  {
+    showStop();
+  }
+}
+
+// ====================== GPS ======================
+void readGPS()
+{
+  while (gpsSerial.available() > 0)
+  {
+    char c = gpsSerial.read();
+
+    // Raw GPS debug output
+    Serial.write(c);
+
+    if (c == '$')
+    {
+      gpsSentenceSeen = true;
+    }
+
+    gps.encode(c);
+  }
+
+  if (gps.location.isUpdated() && gps.location.isValid())
+  {
+    lastValidLat = gps.location.lat();
+    lastValidLng = gps.location.lng();
+    hasEverHadFix = true;
+
+    Serial.println();
+    Serial.println("GPS FIX UPDATED");
+    Serial.print("LAT: ");
+    Serial.println(lastValidLat, 6);
+    Serial.print("LNG: ");
+    Serial.println(lastValidLng, 6);
+    Serial.print("SATELLITES: ");
+    Serial.println(gps.satellites.isValid() ? gps.satellites.value() : 0);
+    Serial.print("HDOP: ");
+    Serial.println(gps.hdop.isValid() ? gps.hdop.hdop() : 0.0);
+  }
+}
+
+// ====================== FIREBASE UPDATE (FRONTEND COMPATIBLE) ======================
+void updateHelmetData(
+    bool helmetWorn,
+    bool alcoholSafe,
+    bool gpsOnline,
+    bool moving,
+    bool accident,
+    bool removedWhileMoving,
+    float lat,
+    float lng,
+    int mq3Value,
+    float tiltDeg,
+    float accelChange)
+{
+  if (WiFi.status() != WL_CONNECTED)
     return;
-  }
-
-  if (!imu.valid) {
-    // If temporary read fail, don't instantly panic
-    if (mpuReadFailCount > 10) {
-      mpuHealthy = false;
-    }
-    return;
-  }
-
-  mpuHealthy = true;
-
-  bool suspicious = isSuspiciousMotion(imu);
-
-  if (suspicious && !accidentSuspected && !accidentDetected) {
-    accidentSuspected = true;
-    accidentSuspectStart = millis();
-    Serial.println("Accident suspected...");
-  }
-
-  if (accidentSuspected && !accidentDetected) {
-    if (suspicious) {
-      if (millis() - accidentSuspectStart >= ACCIDENT_HOLD_MS) {
-        accidentDetected = true;
-        accidentSuspected = false;
-        Serial.println("ACCIDENT CONFIRMED!");
-      }
-    } else {
-      // Motion normalized -> false alarm reset
-      accidentSuspected = false;
-    }
-  }
-
-  // Auto-clear if stable again for demo convenience
-  static unsigned long stableStart = 0;
-  if (accidentDetected && !suspicious && imu.tiltDeg < 25.0) {
-    if (stableStart == 0) stableStart = millis();
-
-    if (millis() - stableStart > 5000) {
-      accidentDetected = false;
-      stableStart = 0;
-      Serial.println("Accident state auto-reset after stable recovery");
-    }
-  } else {
-    stableStart = 0;
-  }
-}
-
-// ====================== FIREBASE ======================
-void updateFirebase(bool helmetWorn, bool alcoholSafe, bool gpsOnline,
-                    bool moving, bool accident, bool rideAllowed,
-                    int mq3Value, const IMUData& imu,
-                    float lat, float lng) {
-  if (WiFi.status() != WL_CONNECTED) return;
 
   HTTPClient http;
   String url = String(FIREBASE_BASE_URL) + "/helmets/" + HELMET_ID + ".json";
 
-  // Simple battery placeholder (can replace later with real battery divider)
-  float batteryVoltage = 3.9;
-  int batteryPercent = 78;
-
+  // IMPORTANT: This JSON matches the HTML frontend structure:
+  // helmets/HLM001/
+  //   rider { ... }
+  //   status { ... }
+  //   location { lat, lng }
+  //   telemetry { ... }
   String json = "{";
+  json += "\"helmetId\":\"" + String(HELMET_ID) + "\",";
+  json += "\"helmetTagId\":\"" + String(HELMET_TAG_ID) + "\",";
 
-  // Rider status object
+  // Rider info
+  json += "\"rider\":{";
+  json += "\"name\":\"" + String(RIDER_NAME) + "\",";
+  json += "\"bloodGroup\":\"" + String(RIDER_BLOOD_GROUP) + "\",";
+  json += "\"emergencyContact\":\"" + String(RIDER_EMERGENCY_CONTACT) + "\",";
+  json += "\"city\":\"" + String(RIDER_CITY) + "\",";
+  json += "\"medicalNote\":\"" + String(RIDER_MEDICAL_NOTE) + "\"";
+  json += "},";
+
+  // Status info
   json += "\"status\":{";
   json += "\"helmetWorn\":" + boolToJson(helmetWorn) + ",";
   json += "\"alcoholSafe\":" + boolToJson(alcoholSafe) + ",";
   json += "\"gpsOnline\":" + boolToJson(gpsOnline) + ",";
   json += "\"moving\":" + boolToJson(moving) + ",";
   json += "\"accidentDetected\":" + boolToJson(accident) + ",";
-  json += "\"helmetRemovedWhileRiding\":" + boolToJson(moving && !helmetWorn) + ",";
-  json += "\"rideAllowed\":" + boolToJson(rideAllowed) + ",";
-  json += "\"lastUpdated\":\"Live from ESP32 Final\"";
+  json += "\"helmetRemovedWhileRiding\":" + boolToJson(removedWhileMoving) + ",";
+  json += "\"rideAllowed\":" + boolToJson(helmetWorn && alcoholSafe) + ",";
+  json += "\"sosActive\":false,";
+  json += "\"lastUpdated\":\"Live from ESP32\"";
   json += "},";
 
-  // Sensor object
-  json += "\"sensors\":{";
-  json += "\"mq3Value\":" + String(mq3Value) + ",";
-  json += "\"tiltDeg\":" + String(imu.tiltDeg, 2) + ",";
-  json += "\"accelDelta\":" + String(imu.accelDelta, 3) + ",";
-  json += "\"mpuHealthy\":" + boolToJson(mpuHealthy) + ",";
-  json += "\"mpuReadFailCount\":" + String(mpuReadFailCount) + ",";
-  json += "\"batteryVoltage\":" + String(batteryVoltage, 2) + ",";
-  json += "\"batteryPercent\":" + String(batteryPercent);
-  json += "},";
-
-  // Location object
+  // Location
   json += "\"location\":{";
   json += "\"lat\":" + String(lat, 6) + ",";
   json += "\"lng\":" + String(lng, 6);
   json += "},";
 
-  // Raw IMU object
+  // Extra telemetry (for debug / future use)
+  json += "\"telemetry\":{";
+  json += "\"mq3Value\":" + String(mq3Value) + ",";
+  json += "\"tiltDeg\":" + String(tiltDeg, 2) + ",";
+  json += "\"accelDelta\":" + String(accelChange, 2) + ",";
   json += "\"mpuRaw\":{";
-  json += "\"ax\":" + String(imu.axRaw) + ",";
-  json += "\"ay\":" + String(imu.ayRaw) + ",";
-  json += "\"az\":" + String(imu.azRaw) + ",";
-  json += "\"gx\":" + String(imu.gxRaw) + ",";
-  json += "\"gy\":" + String(imu.gyRaw) + ",";
-  json += "\"gz\":" + String(imu.gzRaw);
+  json += "\"ax\":" + String(ax) + ",";
+  json += "\"ay\":" + String(ay) + ",";
+  json += "\"az\":" + String(az) + ",";
+  json += "\"gx\":" + String(gx) + ",";
+  json += "\"gy\":" + String(gy) + ",";
+  json += "\"gz\":" + String(gz);
+  json += "}";
   json += "}";
 
   json += "}";
@@ -357,131 +368,222 @@ void updateFirebase(bool helmetWorn, bool alcoholSafe, bool gpsOnline,
 
   int httpCode = http.PUT(json);
 
-  Serial.println("========== FIREBASE UPDATE ==========");
+  Serial.println("----- HELMET DATA UPDATE -----");
   Serial.println(url);
+  Serial.println(json);
   Serial.print("HTTP Code: ");
   Serial.println(httpCode);
 
-  if (httpCode > 0) {
-    Serial.println("Firebase OK");
-  } else {
-    Serial.println("Firebase update failed");
+  if (httpCode > 0)
+  {
+    Serial.println("Response: " + http.getString());
+  }
+  else
+  {
+    Serial.println("Update failed.");
   }
 
   http.end();
 }
 
 // ====================== SETUP ======================
-void setup() {
+void setup()
+{
   Serial.begin(115200);
   delay(500);
 
   pinMode(HELMET_WEAR_PIN, INPUT_PULLUP);
 
-  connectWiFi();
+  display.setBrightness(0x0f, true);
+  showStop();
 
-  // Start GPS
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
 
-  // Init IMU
-  mpuHealthy = initMPU();
+  bool mpuOk = initMPU6050();
+  Serial.println(mpuOk ? "MPU6050 ready" : "MPU6050 not detected");
 
-  Serial.println("Smart Helmet Final Firmware Ready!");
+  connectWiFi();
+
+  Serial.println("Smart Helmet ESP32 Ready!");
+  Serial.println("GPS wiring must be:");
+  Serial.println("GPS TX -> ESP32 GPIO16");
+  Serial.println("GPS RX -> ESP32 GPIO17");
+  Serial.println("Waiting for GPS data...");
 }
 
 // ====================== LOOP ======================
-void loop() {
-  // Reconnect WiFi if needed
-  if (WiFi.status() != WL_CONNECTED) {
-    connectWiFi();
-  }
+void loop()
+{
+  readGPS();
 
-  // Read GPS stream
-  while (gpsSerial.available() > 0) {
-    gps.encode(gpsSerial.read());
-  }
-
-  // -------- SENSOR READS --------
   int mq3Value = analogRead(MQ3_PIN);
-  bool alcoholSafe = mq3Value < MQ3_THRESHOLD;
+  bool alcoholSafe = (mq3Value < MQ3_THRESHOLD);
 
-  bool helmetWorn = (digitalRead(HELMET_WEAR_PIN) == LOW); // LOW = worn
+  bool helmetWorn = (digitalRead(HELMET_WEAR_PIN) == LOW);
 
-  IMUData imu = readIMU();
+  bool mpuReadOk = readMPU6050Raw();
+  float tiltDeg = 0.0;
+  float accelChange = 0.0;
 
-  // Motion heuristic
-  bool moving = false;
-  if (imu.valid) {
-    moving = (imu.accelDelta > 0.08 || fabs(imu.gxDps) > 10 || fabs(imu.gyDps) > 10 || fabs(imu.gzDps) > 10);
+  if (mpuReadOk)
+  {
+    tiltDeg = estimateTiltDeg();
+    accelChange = accelDelta();
+
+    movingNow = (accelChange > MOVING_ACCEL_DELTA);
+
+    bool crashCondition = (accelChange > ACCIDENT_ACCEL_DELTA) ||
+                          (tiltDeg > TILT_THRESHOLD_DEG && movingNow);
+
+    if (crashCondition)
+    {
+      if (accidentStartTime == 0)
+      {
+        accidentStartTime = millis();
+      }
+      else if (millis() - accidentStartTime >= ACCIDENT_HOLD_MS)
+      {
+        accidentDetected = true;
+      }
+    }
+    else
+    {
+      accidentStartTime = 0;
+      accidentDetected = false;
+    }
+
+    if (!helmetWorn && movingNow)
+    {
+      if (helmetRemovedStartTime == 0)
+      {
+        helmetRemovedStartTime = millis();
+      }
+      else if (millis() - helmetRemovedStartTime >= HELMET_REMOVED_ALERT_MS)
+      {
+        helmetRemovedWhileMoving = true;
+      }
+    }
+    else
+    {
+      helmetRemovedStartTime = 0;
+      helmetRemovedWhileMoving = false;
+    }
+
+    prevAx = ax;
+    prevAy = ay;
+    prevAz = az;
   }
 
-  // Accident logic
-  updateAccidentState(imu, helmetWorn);
-
-  // Ride allowed logic
-  bool rideAllowed = helmetWorn && alcoholSafe;
-
-  // GPS logic
   bool gpsOnline = false;
   float lat = fallbackLat;
   float lng = fallbackLng;
 
-  if (gps.location.isValid()) {
+  if (gps.location.isValid() && gps.location.age() < 5000)
+  {
     gpsOnline = true;
     lat = gps.location.lat();
     lng = gps.location.lng();
-  } else {
-    // Fallback mode for reliable hackathon demo
-    gpsOnline = true;
+
+    lastValidLat = lat;
+    lastValidLng = lng;
+    hasEverHadFix = true;
+  }
+  else if (hasEverHadFix)
+  {
+    lat = lastValidLat;
+    lng = lastValidLng;
+  }
+  else
+  {
     lat = fallbackLat;
     lng = fallbackLng;
   }
 
-  // -------- SERIAL DEBUG --------
-  Serial.println("========================================");
-  Serial.print("MQ3: "); Serial.println(mq3Value);
-  Serial.print("Alcohol Safe: "); Serial.println(alcoholSafe ? "YES" : "NO");
-  Serial.print("Helmet Worn: "); Serial.println(helmetWorn ? "YES" : "NO");
-  Serial.print("Moving: "); Serial.println(moving ? "YES" : "NO");
-  Serial.print("Accident: "); Serial.println(accidentDetected ? "YES" : "NO");
-  Serial.print("Ride Allowed: "); Serial.println(rideAllowed ? "YES" : "NO");
+  if (millis() - lastGpsDebugTime >= 3000)
+  {
+    lastGpsDebugTime = millis();
 
-  if (imu.valid) {
-    Serial.print("AX G: "); Serial.print(imu.axG, 3);
-    Serial.print(" | AY G: "); Serial.print(imu.ayG, 3);
-    Serial.print(" | AZ G: "); Serial.println(imu.azG, 3);
+    Serial.println();
+    Serial.println("========== GPS STATUS ==========");
+    Serial.print("Chars Processed: ");
+    Serial.println(gps.charsProcessed());
+    Serial.print("Sentences With Fix Data Seen: ");
+    Serial.println(gpsSentenceSeen ? "YES" : "NO");
+    Serial.print("Location Valid: ");
+    Serial.println(gps.location.isValid() ? "YES" : "NO");
+    Serial.print("Location Age(ms): ");
+    Serial.println(gps.location.age());
+    Serial.print("Satellites: ");
+    Serial.println(gps.satellites.isValid() ? gps.satellites.value() : 0);
+    Serial.print("HDOP: ");
+    Serial.println(gps.hdop.isValid() ? gps.hdop.hdop() : 0.0);
 
-    Serial.print("GX DPS: "); Serial.print(imu.gxDps, 2);
-    Serial.print(" | GY DPS: "); Serial.print(imu.gyDps, 2);
-    Serial.print(" | GZ DPS: "); Serial.println(imu.gzDps, 2);
-
-    Serial.print("Tilt: "); Serial.print(imu.tiltDeg, 2);
-    Serial.print(" | AccelDelta: "); Serial.println(imu.accelDelta, 3);
-  } else {
-    Serial.println("IMU invalid this cycle");
+    if (!gpsSentenceSeen)
+    {
+      Serial.println("No GPS serial data received. Check TX/RX wiring or baud rate.");
+    }
+    else if (!gps.location.isValid())
+    {
+      Serial.println("GPS data present, but no location fix yet. Move outdoors/open sky.");
+    }
   }
 
-  Serial.print("GPS Online: "); Serial.println(gpsOnline ? "YES" : "NO");
-  Serial.print("Lat: "); Serial.println(lat, 6);
-  Serial.print("Lng: "); Serial.println(lng, 6);
+  updateDisplay(helmetWorn, alcoholSafe, accidentDetected);
 
-  // -------- FIREBASE UPDATE --------
-  if (millis() - lastUpdate >= UPDATE_INTERVAL) {
+  if (millis() - lastUpdate >= UPDATE_INTERVAL)
+  {
     lastUpdate = millis();
 
-    updateFirebase(
-      helmetWorn,
-      alcoholSafe,
-      gpsOnline,
-      moving,
-      accidentDetected,
-      rideAllowed,
-      mq3Value,
-      imu,
-      lat,
-      lng
-    );
+    Serial.println("==================================");
+    Serial.print("Helmet Tag ID: ");
+    Serial.println(HELMET_TAG_ID);
+
+    Serial.print("MQ3 Value: ");
+    Serial.println(mq3Value);
+    Serial.print("Alcohol Safe: ");
+    Serial.println(alcoholSafe ? "YES" : "NO");
+
+    Serial.print("Helmet Worn: ");
+    Serial.println(helmetWorn ? "YES" : "NO");
+
+    Serial.print("Ride Allowed: ");
+    Serial.println((helmetWorn && alcoholSafe) ? "YES" : "NO");
+
+    Serial.print("Moving: ");
+    Serial.println(movingNow ? "YES" : "NO");
+
+    Serial.print("Helmet Removed While Riding: ");
+    Serial.println(helmetRemovedWhileMoving ? "YES" : "NO");
+
+    Serial.print("Accident Detected: ");
+    Serial.println(accidentDetected ? "YES" : "NO");
+
+    Serial.print("Tilt(deg): ");
+    Serial.println(tiltDeg, 2);
+
+    Serial.print("Accel Delta: ");
+    Serial.println(accelChange, 2);
+
+    Serial.print("GPS Online: ");
+    Serial.println(gpsOnline ? "YES" : "NO");
+    Serial.print("Lat: ");
+    Serial.println(lat, 6);
+    Serial.print("Lng: ");
+    Serial.println(lng, 6);
+
+    updateHelmetData(
+        helmetWorn,
+        alcoholSafe,
+        gpsOnline,
+        movingNow,
+        accidentDetected,
+        helmetRemovedWhileMoving,
+        lat,
+        lng,
+        mq3Value,
+        tiltDeg,
+        accelChange);
   }
 
-  delay(200);
+  delay(50);
 }
