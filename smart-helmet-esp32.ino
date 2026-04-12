@@ -4,27 +4,22 @@
 #include <TinyGPS++.h>
 #include <Wire.h>
 #include <TM1637Display.h>
-#include <math.h>
 
 // ====================== WIFI CONFIG ======================
 const char *WIFI_SSID = "SmartHelmetDemo";
 const char *WIFI_PASSWORD = "helmet123";
 
-// ====================== FIREBASE CONFIG ======================
+// ====================== FIREBASE / SERVER CONFIG ======================
 const char *FIREBASE_BASE_URL = "https://smart-helmet-demo-8f1d9-default-rtdb.asia-southeast1.firebasedatabase.app";
 const char *HELMET_ID = "HLM001";
 const char *HELMET_TAG_ID = "QR-HLM001";
 
-// ====================== RIDER INFO ======================
-const char *RIDER_NAME = "Yuvraj";
-const char *RIDER_BLOOD_GROUP = "B+";
-const char *RIDER_EMERGENCY_CONTACT = "+919876543210";
-const char *RIDER_CITY = "Delhi, India";
-const char *RIDER_MEDICAL_NOTE = "No Known Allergies";
-
 // ====================== PIN CONFIG ======================
 const int MQ3_PIN = 34;
-const int HELMET_WEAR_PIN = 27; // LOW = worn
+const int HELMET_WEAR_PIN = 27;
+
+// Battery measurement
+const int BATTERY_ADC_PIN = 35;
 
 // TM1637 display
 const int TM1637_CLK_PIN = 18;
@@ -43,38 +38,39 @@ const int MPU_SDA_PIN = 21;
 const int MPU_SCL_PIN = 22;
 
 // ====================== GPS FALLBACK ======================
-float fallbackLat = 28.6139f;
-float fallbackLng = 77.2090f;
+float fallbackLat = 28.6139;
+float fallbackLng = 77.2090;
 
-// ====================== LAST VALID GPS ======================
+// Store last good GPS fix
 float lastValidLat = fallbackLat;
 float lastValidLng = fallbackLng;
-float lastValidAltitudeM = 0.0f;
-float lastValidSpeedKmph = 0.0f;
-float lastValidCourseDeg = 0.0f;
-uint32_t lastFixAgeMsSnapshot = 0;
 bool hasEverHadFix = false;
 
 // ====================== THRESHOLDS ======================
 const int MQ3_THRESHOLD = 1800;
 const unsigned long UPDATE_INTERVAL = 3000;
 
-const float MOVING_ACCEL_DELTA = 3500.0f;
-const float ACCIDENT_ACCEL_DELTA = 12000.0f;
-const float TILT_THRESHOLD_DEG = 55.0f;
+// Movement / accident thresholds
+const float MOVING_ACCEL_DELTA = 3500.0;
+const float ACCIDENT_ACCEL_DELTA = 12000.0;
+const float TILT_THRESHOLD_DEG = 55.0;
 const unsigned long ACCIDENT_HOLD_MS = 1500;
 const unsigned long HELMET_REMOVED_ALERT_MS = 2000;
 
-// GPS timing
-const unsigned long GPS_FIX_FRESH_MS = 5000;
-const unsigned long GPS_CONNECTED_TIMEOUT_MS = 4000;
+// Battery divider ratio for 10k(top) + 20k(bottom)
+const float BATTERY_DIVIDER_RATIO = 3.0;
+const float ADC_REF_VOLTAGE = 3.3;
+const int ADC_MAX = 4095;
+
+// Single-cell Li-ion percentage estimate
+const float BATTERY_EMPTY_V = 3.30;
+const float BATTERY_FULL_V = 4.20;
 
 // ====================== STATE ======================
 unsigned long lastUpdate = 0;
 unsigned long accidentStartTime = 0;
 unsigned long helmetRemovedStartTime = 0;
 unsigned long lastGpsDebugTime = 0;
-unsigned long lastGpsCharTime = 0;
 
 bool accidentDetected = false;
 bool movingNow = false;
@@ -96,75 +92,13 @@ float absf(float x)
   return (x < 0) ? -x : x;
 }
 
-String jsonEscape(const String &input)
+int clampi(int value, int minV, int maxV)
 {
-  String out;
-  out.reserve(input.length() + 8);
-
-  for (size_t i = 0; i < input.length(); i++)
-  {
-    char c = input[i];
-    switch (c)
-    {
-    case '\"':
-      out += "\\\"";
-      break;
-    case '\\':
-      out += "\\\\";
-      break;
-    case '\n':
-      out += "\\n";
-      break;
-    case '\r':
-      out += "\\r";
-      break;
-    case '\t':
-      out += "\\t";
-      break;
-    default:
-      out += c;
-      break;
-    }
-  }
-  return out;
-}
-
-String formatTwoDigits(int value)
-{
-  if (value < 10)
-    return "0" + String(value);
-  return String(value);
-}
-
-String getGpsUtcIso()
-{
-  if (gps.date.isValid() && gps.time.isValid())
-  {
-    int year = gps.date.year();
-    int month = gps.date.month();
-    int day = gps.date.day();
-    int hour = gps.time.hour();
-    int minute = gps.time.minute();
-    int second = gps.time.second();
-
-    return String(year) + "-" +
-           formatTwoDigits(month) + "-" +
-           formatTwoDigits(day) + "T" +
-           formatTwoDigits(hour) + ":" +
-           formatTwoDigits(minute) + ":" +
-           formatTwoDigits(second) + "Z";
-  }
-  return "";
-}
-
-String buildLatLngString(float lat, float lng)
-{
-  return String(lat, 6) + "," + String(lng, 6);
-}
-
-String buildGoogleMapsUrl(float lat, float lng)
-{
-  return "https://www.google.com/maps?q=" + buildLatLngString(lat, lng);
+  if (value < minV)
+    return minV;
+  if (value > maxV)
+    return maxV;
+  return value;
 }
 
 bool connectWiFi()
@@ -192,7 +126,7 @@ bool connectWiFi()
   return false;
 }
 
-// ====================== MPU6050 ======================
+// ====================== MPU6050 RAW ACCESS ======================
 void writeMPURegister(uint8_t reg, uint8_t value)
 {
   Wire.beginTransmission(MPU_ADDR);
@@ -208,8 +142,8 @@ bool initMPU6050()
   writeMPURegister(0x6B, 0x00);
   delay(100);
 
-  writeMPURegister(0x1C, 0x00); // accel ±2g
-  writeMPURegister(0x1B, 0x00); // gyro ±250°/s
+  writeMPURegister(0x1C, 0x00);
+  writeMPURegister(0x1B, 0x00);
 
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x75);
@@ -263,11 +197,11 @@ float estimateTiltDeg()
   float ayf = (float)ay;
   float azf = (float)az;
 
-  float denominator = sqrtf(ayf * ayf + azf * azf);
+  float denominator = sqrt(ayf * ayf + azf * azf);
   if (denominator < 1.0f)
     denominator = 1.0f;
 
-  float tiltRad = atanf(axf / denominator);
+  float tiltRad = atan(axf / denominator);
   return absf(tiltRad * 180.0f / PI);
 }
 
@@ -276,54 +210,36 @@ float accelDelta()
   float dx = (float)(ax - prevAx);
   float dy = (float)(ay - prevAy);
   float dz = (float)(az - prevAz);
-  return sqrtf(dx * dx + dy * dy + dz * dz);
+  return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-// ====================== DISPLAY ======================
-void showSafe()
+// ====================== BATTERY ======================
+float readBatteryVoltage()
 {
-  uint8_t data[] = {
-      display.encodeDigit(5),
-      0x77,
-      0x71,
-      0x79};
-  display.setSegments(data);
-}
+  uint32_t sum = 0;
+  const int samples = 16;
 
-void showHelp()
-{
-  uint8_t data[] = {
-      0x76,
-      0x79,
-      0x38,
-      0x73};
-  display.setSegments(data);
-}
-
-void showStop()
-{
-  uint8_t data[] = {
-      display.encodeDigit(5),
-      0x78,
-      0x3F,
-      0x73};
-  display.setSegments(data);
-}
-
-void updateDisplay(bool helmetWorn, bool alcoholSafe, bool accidentDetected)
-{
-  if (accidentDetected)
+  for (int i = 0; i < samples; i++)
   {
-    showHelp();
+    sum += analogRead(BATTERY_ADC_PIN);
+    delay(2);
   }
-  else if (helmetWorn && alcoholSafe)
-  {
-    showSafe();
-  }
-  else
-  {
-    showStop();
-  }
+
+  float adcRaw = (float)sum / samples;
+  float vadc = (adcRaw / ADC_MAX) * ADC_REF_VOLTAGE;
+  float vbattery = vadc * BATTERY_DIVIDER_RATIO;
+  return vbattery;
+}
+
+int batteryPercentFromVoltage(float vbattery)
+{
+  float pct = (vbattery - BATTERY_EMPTY_V) * 100.0f / (BATTERY_FULL_V - BATTERY_EMPTY_V);
+  return clampi((int)(pct + 0.5f), 0, 100);
+}
+
+void showBatteryPercent(int batteryPercent)
+{
+  display.showNumberDec(batteryPercent, false, 4, 0);
 }
 
 // ====================== GPS ======================
@@ -332,9 +248,9 @@ void readGPS()
   while (gpsSerial.available() > 0)
   {
     char c = gpsSerial.read();
-    Serial.write(c);
 
-    lastGpsCharTime = millis();
+    // Raw GPS debug output
+    Serial.write(c);
 
     if (c == '$')
     {
@@ -350,17 +266,6 @@ void readGPS()
     lastValidLng = gps.location.lng();
     hasEverHadFix = true;
 
-    if (gps.altitude.isValid())
-      lastValidAltitudeM = gps.altitude.meters();
-
-    if (gps.speed.isValid())
-      lastValidSpeedKmph = gps.speed.kmph();
-
-    if (gps.course.isValid())
-      lastValidCourseDeg = gps.course.deg();
-
-    lastFixAgeMsSnapshot = gps.location.age();
-
     Serial.println();
     Serial.println("GPS FIX UPDATED");
     Serial.print("LAT: ");
@@ -371,32 +276,24 @@ void readGPS()
     Serial.println(gps.satellites.isValid() ? gps.satellites.value() : 0);
     Serial.print("HDOP: ");
     Serial.println(gps.hdop.isValid() ? gps.hdop.hdop() : 0.0);
-    Serial.print("UTC: ");
-    Serial.println(getGpsUtcIso());
   }
 }
 
-// ====================== FIREBASE UPDATE ======================
+// ====================== SERVER UPDATE ======================
 void updateHelmetData(
     bool helmetWorn,
     bool alcoholSafe,
-    bool gpsConnected,
-    bool gpsHasFix,
-    const String &locationSource,
+    bool gpsOnline,
     bool moving,
     bool accident,
     bool removedWhileMoving,
     float lat,
     float lng,
-    float altitudeM,
-    float speedKmph,
-    float courseDeg,
-    int satellites,
-    float hdop,
-    unsigned long locationAgeMs,
     int mq3Value,
     float tiltDeg,
-    float accelChange)
+    float accelChange,
+    float batteryVoltage,
+    int batteryPercent)
 {
   if (WiFi.status() != WL_CONNECTED)
     return;
@@ -404,61 +301,25 @@ void updateHelmetData(
   HTTPClient http;
   String url = String(FIREBASE_BASE_URL) + "/helmets/" + HELMET_ID + ".json";
 
-  String latLng = buildLatLngString(lat, lng);
-  String googleMapsUrl = buildGoogleMapsUrl(lat, lng);
-  String gpsUtcIso = getGpsUtcIso();
-
   String json = "{";
-
-  json += "\"helmetId\":\"" + jsonEscape(String(HELMET_ID)) + "\",";
-  json += "\"helmetTagId\":\"" + jsonEscape(String(HELMET_TAG_ID)) + "\",";
-
-  json += "\"rider\":{";
-  json += "\"name\":\"" + jsonEscape(String(RIDER_NAME)) + "\",";
-  json += "\"bloodGroup\":\"" + jsonEscape(String(RIDER_BLOOD_GROUP)) + "\",";
-  json += "\"emergencyContact\":\"" + jsonEscape(String(RIDER_EMERGENCY_CONTACT)) + "\",";
-  json += "\"city\":\"" + jsonEscape(String(RIDER_CITY)) + "\",";
-  json += "\"medicalNote\":\"" + jsonEscape(String(RIDER_MEDICAL_NOTE)) + "\"";
-  json += "},";
-
-  json += "\"status\":{";
+  json += "\"helmetId\":\"" + String(HELMET_ID) + "\",";
+  json += "\"helmetTagId\":\"" + String(HELMET_TAG_ID) + "\",";
   json += "\"helmetWorn\":" + boolToJson(helmetWorn) + ",";
   json += "\"alcoholSafe\":" + boolToJson(alcoholSafe) + ",";
-  json += "\"gpsConnected\":" + boolToJson(gpsConnected) + ",";
-  json += "\"gpsHasFix\":" + boolToJson(gpsHasFix) + ",";
+  json += "\"gpsOnline\":" + boolToJson(gpsOnline) + ",";
   json += "\"moving\":" + boolToJson(moving) + ",";
   json += "\"accidentDetected\":" + boolToJson(accident) + ",";
   json += "\"helmetRemovedWhileRiding\":" + boolToJson(removedWhileMoving) + ",";
   json += "\"rideAllowed\":" + boolToJson(helmetWorn && alcoholSafe) + ",";
-  json += "\"sosActive\":false,";
-  json += "\"lastUpdated\":\"Live from ESP32\"";
-  json += "},";
-
-  json += "\"location\":{";
-  json += "\"lat\":" + String(lat, 6) + ",";
-  json += "\"lng\":" + String(lng, 6) + ",";
-  json += "\"latLng\":\"" + latLng + "\",";
-  json += "\"googleMapsUrl\":\"" + googleMapsUrl + "\",";
-  json += "\"source\":\"" + jsonEscape(locationSource) + "\",";
-  json += "\"hasFix\":" + boolToJson(gpsHasFix) + ",";
-  json += "\"connected\":" + boolToJson(gpsConnected) + ",";
-  json += "\"ageMs\":" + String(locationAgeMs) + ",";
-  json += "\"satellites\":" + String(satellites) + ",";
-  json += "\"hdop\":" + String(hdop, 2) + ",";
-  json += "\"altitudeM\":" + String(altitudeM, 2) + ",";
-  json += "\"speedKmph\":" + String(speedKmph, 2) + ",";
-  json += "\"courseDeg\":" + String(courseDeg, 2) + ",";
-  json += "\"gpsUtc\":\"" + jsonEscape(gpsUtcIso) + "\",";
-  json += "\"geoPoint\":{";
-  json += "\"latitude\":" + String(lat, 6) + ",";
-  json += "\"longitude\":" + String(lng, 6);
-  json += "}";
-  json += "},";
-
-  json += "\"telemetry\":{";
   json += "\"mq3Value\":" + String(mq3Value) + ",";
   json += "\"tiltDeg\":" + String(tiltDeg, 2) + ",";
   json += "\"accelDelta\":" + String(accelChange, 2) + ",";
+  json += "\"batteryVoltage\":" + String(batteryVoltage, 3) + ",";
+  json += "\"batteryPercent\":" + String(batteryPercent) + ",";
+  json += "\"location\":{";
+  json += "\"lat\":" + String(lat, 6) + ",";
+  json += "\"lng\":" + String(lng, 6);
+  json += "},";
   json += "\"mpuRaw\":{";
   json += "\"ax\":" + String(ax) + ",";
   json += "\"ay\":" + String(ay) + ",";
@@ -466,9 +327,8 @@ void updateHelmetData(
   json += "\"gx\":" + String(gx) + ",";
   json += "\"gy\":" + String(gy) + ",";
   json += "\"gz\":" + String(gz);
-  json += "}";
-  json += "}";
-
+  json += "},";
+  json += "\"lastUpdated\":\"Live from ESP32\"";
   json += "}";
 
   http.begin(url);
@@ -501,9 +361,10 @@ void setup()
   delay(500);
 
   pinMode(HELMET_WEAR_PIN, INPUT_PULLUP);
+  analogReadResolution(12);
 
   display.setBrightness(0x0f, true);
-  showStop();
+  display.showNumberDec(0, false, 4, 0);
 
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
 
@@ -522,7 +383,6 @@ void setup()
 // ====================== LOOP ======================
 void loop()
 {
-  // ALWAYS process GPS, no restriction
   readGPS();
 
   int mq3Value = analogRead(MQ3_PIN);
@@ -531,8 +391,8 @@ void loop()
   bool helmetWorn = (digitalRead(HELMET_WEAR_PIN) == LOW);
 
   bool mpuReadOk = readMPU6050Raw();
-  float tiltDeg = 0.0f;
-  float accelChange = 0.0f;
+  float tiltDeg = 0.0;
+  float accelChange = 0.0;
 
   if (mpuReadOk)
   {
@@ -583,83 +443,31 @@ void loop()
     prevAz = az;
   }
 
-  // -------- GPS STATE --------
-  bool gpsConnected = false;
-  bool gpsHasFix = false;
-  String locationSource = "fallback";
-
+  bool gpsOnline = false;
   float lat = fallbackLat;
   float lng = fallbackLng;
-  float altitudeM = 0.0f;
-  float speedKmph = 0.0f;
-  float courseDeg = 0.0f;
-  int satellites = 0;
-  float hdop = 99.99f;
-  unsigned long locationAgeMs = 0;
 
-  if (gpsSentenceSeen && (millis() - lastGpsCharTime) <= GPS_CONNECTED_TIMEOUT_MS)
+  if (gps.location.isValid() && gps.location.age() < 5000)
   {
-    gpsConnected = true;
-  }
-
-  if (gps.location.isValid() && gps.location.age() < GPS_FIX_FRESH_MS)
-  {
-    gpsHasFix = true;
-    locationSource = "live_gps";
-
+    gpsOnline = true;
     lat = gps.location.lat();
     lng = gps.location.lng();
-    locationAgeMs = gps.location.age();
-
-    if (gps.altitude.isValid())
-      altitudeM = gps.altitude.meters();
-
-    if (gps.speed.isValid())
-      speedKmph = gps.speed.kmph();
-
-    if (gps.course.isValid())
-      courseDeg = gps.course.deg();
-
-    if (gps.satellites.isValid())
-      satellites = gps.satellites.value();
-
-    if (gps.hdop.isValid())
-      hdop = gps.hdop.hdop();
 
     lastValidLat = lat;
     lastValidLng = lng;
-    lastValidAltitudeM = altitudeM;
-    lastValidSpeedKmph = speedKmph;
-    lastValidCourseDeg = courseDeg;
     hasEverHadFix = true;
   }
   else if (hasEverHadFix)
   {
-    locationSource = "last_known";
+    // Use last known valid coordinates if temporary signal loss happens
     lat = lastValidLat;
     lng = lastValidLng;
-    altitudeM = lastValidAltitudeM;
-    speedKmph = lastValidSpeedKmph;
-    courseDeg = lastValidCourseDeg;
-    locationAgeMs = gps.location.isValid() ? gps.location.age() : lastFixAgeMsSnapshot;
-
-    if (gps.satellites.isValid())
-      satellites = gps.satellites.value();
-
-    if (gps.hdop.isValid())
-      hdop = gps.hdop.hdop();
   }
   else
   {
-    locationSource = "fallback";
+    // No valid fix ever received
     lat = fallbackLat;
     lng = fallbackLng;
-    altitudeM = 0.0f;
-    speedKmph = 0.0f;
-    courseDeg = 0.0f;
-    locationAgeMs = 0;
-    satellites = gps.satellites.isValid() ? gps.satellites.value() : 0;
-    hdop = gps.hdop.isValid() ? gps.hdop.hdop() : 99.99f;
   }
 
   if (millis() - lastGpsDebugTime >= 3000)
@@ -670,45 +478,30 @@ void loop()
     Serial.println("========== GPS STATUS ==========");
     Serial.print("Chars Processed: ");
     Serial.println(gps.charsProcessed());
-    Serial.print("Sentences Seen: ");
+    Serial.print("Sentences With Fix Data Seen: ");
     Serial.println(gpsSentenceSeen ? "YES" : "NO");
-    Serial.print("GPS Connected: ");
-    Serial.println(gpsConnected ? "YES" : "NO");
-    Serial.print("GPS Has Fix: ");
-    Serial.println(gpsHasFix ? "YES" : "NO");
-    Serial.print("Location Source: ");
-    Serial.println(locationSource);
+    Serial.print("Location Valid: ");
+    Serial.println(gps.location.isValid() ? "YES" : "NO");
     Serial.print("Location Age(ms): ");
-    Serial.println(gps.location.isValid() ? gps.location.age() : 4294967295UL);
+    Serial.println(gps.location.age());
     Serial.print("Satellites: ");
-    Serial.println(satellites);
+    Serial.println(gps.satellites.isValid() ? gps.satellites.value() : 0);
     Serial.print("HDOP: ");
-    Serial.println(hdop, 2);
+    Serial.println(gps.hdop.isValid() ? gps.hdop.hdop() : 0.0);
 
     if (!gpsSentenceSeen)
     {
-      Serial.println("No GPS serial data. Check wiring / baud.");
+      Serial.println("No GPS serial data received. Check TX/RX wiring or baud rate.");
     }
-    else if (!gpsConnected)
+    else if (!gps.location.isValid())
     {
-      Serial.println("GPS sentences were seen earlier, but no recent serial data is arriving.");
-    }
-    else if (!gpsHasFix)
-    {
-      Serial.println("GPS connected but no valid fix yet. Go outdoors.");
-    }
-    else
-    {
-      Serial.print("Live Lat: ");
-      Serial.println(lat, 6);
-      Serial.print("Live Lng: ");
-      Serial.println(lng, 6);
-      Serial.print("Maps URL: ");
-      Serial.println(buildGoogleMapsUrl(lat, lng));
+      Serial.println("GPS data present, but no location fix yet. Move outdoors/open sky.");
     }
   }
 
-  updateDisplay(helmetWorn, alcoholSafe, accidentDetected);
+  float batteryVoltage = readBatteryVoltage();
+  int batteryPercent = batteryPercentFromVoltage(batteryVoltage);
+  showBatteryPercent(batteryPercent);
 
   if (millis() - lastUpdate >= UPDATE_INTERVAL)
   {
@@ -744,44 +537,33 @@ void loop()
     Serial.print("Accel Delta: ");
     Serial.println(accelChange, 2);
 
-    Serial.print("GPS Connected: ");
-    Serial.println(gpsConnected ? "YES" : "NO");
+    Serial.print("Battery Voltage: ");
+    Serial.println(batteryVoltage, 3);
 
-    Serial.print("GPS Has Fix: ");
-    Serial.println(gpsHasFix ? "YES" : "NO");
+    Serial.print("Battery Percent: ");
+    Serial.println(batteryPercent);
 
-    Serial.print("Location Source: ");
-    Serial.println(locationSource);
-
+    Serial.print("GPS Online: ");
+    Serial.println(gpsOnline ? "YES" : "NO");
     Serial.print("Lat: ");
     Serial.println(lat, 6);
-
     Serial.print("Lng: ");
     Serial.println(lng, 6);
-
-    Serial.print("Google Maps URL: ");
-    Serial.println(buildGoogleMapsUrl(lat, lng));
 
     updateHelmetData(
         helmetWorn,
         alcoholSafe,
-        gpsConnected,
-        gpsHasFix,
-        locationSource,
+        gpsOnline,
         movingNow,
         accidentDetected,
         helmetRemovedWhileMoving,
         lat,
         lng,
-        altitudeM,
-        speedKmph,
-        courseDeg,
-        satellites,
-        hdop,
-        locationAgeMs,
         mq3Value,
         tiltDeg,
-        accelChange);
+        accelChange,
+        batteryVoltage,
+        batteryPercent);
   }
 
   delay(50);
